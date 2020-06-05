@@ -6,22 +6,9 @@ This is a simple NodeJS CLI tool to easily install ***[WebSVF](https://github.co
 
 ## Installation
 
-Download the **[binary](websvf-create-analysis-1.0.0.tgz)**
 
-Extract it:
 ```
-tar zxvf websvf-create-analysis-1.0.0.tgz
-```
-
-Test it:
-```
-cd package
-sudo npm link
-```
-
-Run it:
-```
---- COMING SOON ---
+npm install -g @websvf/create-analysis
 ```
 
 ## Usage
