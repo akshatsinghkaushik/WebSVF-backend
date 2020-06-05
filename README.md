@@ -2,7 +2,7 @@
 
 ## Description
 
-This is a simple NodeJS CLI tool to easily install WebSVF and run it.
+This is a simple NodeJS CLI tool to easily install ***[WebSVF](https://github.com/SVF-tools/WebSVF)*** and run it.
 
 ## Installation
 
