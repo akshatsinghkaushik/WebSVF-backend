@@ -101,9 +101,7 @@ async function createSVFToolsDirectory(user) {
 }
 
 async function generateJSON(path, projectDir) {
-  const result = await execa('node', ['generateJSON.js', projectDir],{
-    cwd: path,
-  });
+  const result = execa.node(`${path}generateJSON.js`, [ `${projectDir}` ] );
 
   if (result.failed) {
     return Promise.reject(new Error(`Failed to install ${chalk.yellow.bold('SVF')}`));
@@ -585,7 +583,7 @@ export async function createAnalysis(options) {
     },
     {
       title: `Generating ${chalk.yellow.bold('Bug-Report-Analysis.json')}`,
-      enabled: () => (options.generateJSON!=='' && !options.runInstall),
+      enabled: () => !options.runInstall,
       //skip: () => depInstall.svf,
       task: () => generateJSON(srcPath, options.generateJSON).then(()=>depInstall.svf = true).catch((e)=>{
         console.error(`${chalk.inverse(`Something went wrong generating ${chalk.red.bold('Bug-Report-Analysis.json')}${'\n'.repeat(2)} Please Run the command ${chalk.green.italic('sudo create-analysis')} again to finish setting up  ${'\n'.repeat(2)} The Error Log from the failed installation:`)}`);
