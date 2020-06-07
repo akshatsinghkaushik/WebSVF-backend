@@ -216,5 +216,5 @@ export async function cli(args) {
 
     await createAnalysis(options);
 
-    console.log(options);
+    //console.log(options);
 }
