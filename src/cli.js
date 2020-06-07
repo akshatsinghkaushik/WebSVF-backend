@@ -33,7 +33,7 @@ function parseArgumentsIntoOptions(rawArgs) {
     //skipPrompts: args['--yes'] || false,
     template: args._[0],
     arguements: args._,
-    account: args['--account'] || '',
+    account: args['--account'] || false,
     generateJSONDir: args['--dir'] || process.cwd(),
     output: args['--output'] || '',
     runInstall: args['--install'] || false,
