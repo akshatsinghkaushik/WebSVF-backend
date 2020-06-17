@@ -638,7 +638,6 @@ export async function createAnalysis(options) {
           {
             title: `Removing ${chalk.blue('Extension files')}`,
             enabled: () => true,
-            //skip: () => !options.runInstall,
             task: () => execao('rm', ['-rf','WebSVF-frontend-extension','codemap-extension', 'codemap-extension-0.0.1/', 'WebSVF-frontend-extension_0.9.0/'],{
               cwd: `/home/${options.account}/.vscode/extensions`
             })
