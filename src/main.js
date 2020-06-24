@@ -1039,7 +1039,7 @@ export async function createAnalysis(options) {
     console.error(e);
   }
 
-  if (!options.runInstall && !options.runUnInstall) {
+  if ((!options.runInstall && !options.runUnInstall)===true) {
     var bcFilesList = scanbc(`${options.generateJSONDir}`);
     var select = await whichbc(bcFilesList);
 
