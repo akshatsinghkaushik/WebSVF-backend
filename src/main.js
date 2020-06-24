@@ -14,7 +14,7 @@ import {
   installSVFDependencies,
   updatePackages,
   scanbc,
-  whichbc
+  whichbc,
 } from "./exec/functions";
 
 const copy = promisify(ncp);
@@ -248,19 +248,6 @@ export async function createAnalysis(options) {
                   })
                   .catch(() => {}),
             },
-
-            //Checking for SVF Installation by checking if the wpa command works (FAILs since wpa gives an error when run without parameters):
-
-            // {
-            //   title: `Checking ${chalk.inverse('SVF')} Installation`,
-            //   enabled: () => true,
-            //   task: () => {
-            //     if(dirPresence.llvmclang && dirPresence.svfR){
-            //       depInstall.svf = true;
-            //     }
-            //   }
-            //   //commandExists('wpa').then(()=>{depInstall.svf=true;}).catch(()=>{})
-            // }
           ],
           { concurrent: false }
         );
@@ -293,45 +280,6 @@ export async function createAnalysis(options) {
                 execao("snap", ["install", "code", "--classic"], null, () => {
                   depInstall.vscode = true;
                 }),
-
-              //  Installing VSCode from a downloaded .deb file:
-
-              // {
-              //   return new Listr([
-              //     {
-              //       title: `Installing ${chalk.blue('Dependencies')}`,
-              //       enabled: () => true,
-              //       task: () => installVSCodeDependencies().then(()=>{}).catch((e)=>{
-              //         console.error(`${chalk.inverse(`Something went wrong installing ${chalk.red.bold('Dependencies')}${'\n'.repeat(2)} Please Run the command ${chalk.green.italic('sudo create-analysis --install')} again to finish setting up  ${'\n'.repeat(2)} The Error Log from the failed installation:`)}`);
-              //         console.error(e);
-              //         process.exit(1);
-              //       })
-              //     },
-              //     {
-              //       title: `Downloading ${chalk.blue('VSCode Install File')}`,
-              //       enabled: () => true,
-              //       task: () => execao('wget', ['https://az764295.vo.msecnd.net/stable/5763d909d5f12fe19f215cbfdd29a91c0fa9208a/code_1.45.1-1589445302_amd64.deb'])
-              //     },
-              //     {
-              //       title: `Installing ${chalk.yellow('VSCode')}`,
-              //       enabled: () => true,
-              //       task: () => installVSCode().then(()=>{depInstall.vscode=true}).catch((e)=>{
-              //         console.error(`${chalk.inverse(`Something went wrong installing ${chalk.red.bold('VSCode')}${'\n'.repeat(2)} Please Run the command ${chalk.green.italic('sudo create-analysis --install')} again to finish setting up  ${'\n'.repeat(2)} The Error Log from the failed installation:`)}`);
-              //         console.error(e);
-              //         process.exit(1);
-              //       })
-              //     },
-              //     {
-              //       title: `Removing ${chalk.yellow('VSCode Install File')}`,
-              //       enabled: () => true,
-              //       task: () => removeInstallFiles().then(()=>{}).catch((e)=>{
-              //         console.error(`${chalk.inverse(`Something went wrong removing ${chalk.red.bold('VSCode INstall File')}${'\n'.repeat(2)} Please Run the command ${chalk.green.italic('sudo create-analysis --install')} again to finish setting up  ${'\n'.repeat(2)} The Error Log from the failed installation:`)}`);
-              //         console.error(e);
-              //         process.exit(1);
-              //       })
-              //     }
-              //   ],{concurrent: false})
-              // }
             },
             {
               title: `Installing ${chalk.inverse("Git")}`,
@@ -1082,11 +1030,7 @@ export async function createAnalysis(options) {
       //   console.error(e);
       // })
     },
-    
   ]);
-
-
-  
 
   //Run the list of tasks defined above
   try {
@@ -1095,52 +1039,74 @@ export async function createAnalysis(options) {
     console.error(e);
   }
 
-  var bcFilesList = scanbc(`${options.generateJSONDir}`);
-  var select = await whichbc(bcFilesList);
+  if (!options.runInstall && !options.runUnInstall) {
+    var bcFilesList = scanbc(`${options.generateJSONDir}`);
+    var select = await whichbc(bcFilesList);
 
-  const tasks1 = new Listr([
-    {
-      title: `Moving Files for ${chalk.yellow.bold(
-        "WebSVF-codemap-extension"
-      )}`,
-      enabled: () => !options.runInstall && !options.runUnInstall,
-      //skip: () => depInstall.svf,
-      task: () => execao('cp', [`-t`, `${options.generateJSONDir}`, 'CodeMap.sh', 'Bc2Dot.sh', 'Dot2Json.py'], {
-        cwd: scriptsPath
-      }, ()=>{})
-      //console.log(scanbc(`${options.generateJSONDir}`)),
-      //execao('bash', [`${srcPath}CodeMap.sh`, `${options.generateJSONDir}`], null, ()=>{})
-    },
-    {
-      title: `Generating Graphs for ${chalk.yellow.bold(
-        "WebSVF-codemap-extension"
-      )}`,
-      enabled: () => !options.runInstall && !options.runUnInstall,
-      //skip: () => depInstall.svf,
-      task: () => execao('bash', [`CodeMap.sh`, select.selection], {
-        cwd: options.generateJSONDir
-      }, ()=>{})
-      //console.log(scanbc(`${options.generateJSONDir}`)),
-      //execao('bash', [`${srcPath}CodeMap.sh`, `${options.generateJSONDir}`], null, ()=>{})
-    },
-    {
-      title: `Removing files for ${chalk.yellow.bold(
-        "WebSVF-codemap-extension"
-      )}`,
-      enabled: () => !options.runInstall && !options.runUnInstall,
-      //skip: () => depInstall.svf,
-      task: () => execao('rm', [`-rf`, 'CodeMap.sh', 'Bc2Dot.sh', 'Dot2Json.py'], {
-        cwd: options.generateJSONDir
-      }, ()=>{})
-      //console.log(scanbc(`${options.generateJSONDir}`)),
-      //execao('bash', [`${srcPath}CodeMap.sh`, `${options.generateJSONDir}`], null, ()=>{})
-    },
-  ])
+    const tasks1 = new Listr([
+      {
+        title: `Moving Files for ${chalk.yellow.bold(
+          "WebSVF-codemap-extension"
+        )}`,
+        enabled: () => !options.runInstall && !options.runUnInstall,
+        //skip: () => depInstall.svf,
+        task: () =>
+          execao(
+            "cp",
+            [
+              `-t`,
+              `${options.generateJSONDir}`,
+              "CodeMap.sh",
+              "Bc2Dot.sh",
+              "Dot2Json.py",
+            ],
+            {
+              cwd: scriptsPath,
+            },
+            () => {}
+          ),
+      },
+      {
+        title: `Generating Graphs for ${chalk.yellow.bold(
+          "WebSVF-codemap-extension"
+        )}`,
+        enabled: () => !options.runInstall && !options.runUnInstall,
+        //skip: () => depInstall.svf,
+        task: () =>
+          execao(
+            "bash",
+            [`CodeMap.sh`, select.selection],
+            {
+              cwd: options.generateJSONDir,
+            },
+            () => {}
+          ),
+        //console.log(scanbc(`${options.generateJSONDir}`)),
+        //execao('bash', [`${srcPath}CodeMap.sh`, `${options.generateJSONDir}`], null, ()=>{})
+      },
+      {
+        title: `Removing files for ${chalk.yellow.bold(
+          "WebSVF-codemap-extension"
+        )}`,
+        enabled: () => !options.runInstall && !options.runUnInstall,
+        //skip: () => depInstall.svf,
+        task: () =>
+          execao(
+            "rm",
+            [`-rf`, "CodeMap.sh", "Bc2Dot.sh", "Dot2Json.py"],
+            {
+              cwd: options.generateJSONDir,
+            },
+            () => {}
+          ),
+      },
+    ]);
 
-  try {
-    await tasks1.run();
-  } catch (e) {
-    console.error(e);
+    try {
+      await tasks1.run();
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   //console.log(depInstall);
