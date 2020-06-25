@@ -29,9 +29,7 @@ export async function whichbc(bcFileList) {
   });
 
   const answers = await inquirer.prompt(questions);
-  return {
-    selection: answers.selection
-  };
+  return answers.selection;
 }
 
 export async function installDependencies(dependency) {

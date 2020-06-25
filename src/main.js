@@ -1039,7 +1039,7 @@ export async function createAnalysis(options) {
     console.error(e);
   }
 
-  if ((!options.runInstall && !options.runUnInstall)===true) {
+  if (!options.runInstall && !options.runUnInstall) {
     var bcFilesList = scanbc(`${options.generateJSONDir}`);
     var select = await whichbc(bcFilesList);
 
@@ -1075,7 +1075,7 @@ export async function createAnalysis(options) {
         task: () =>
           execao(
             "bash",
-            [`CodeMap.sh`, select.selection],
+            [`CodeMap.sh`, select],
             {
               cwd: options.generateJSONDir,
             },
