@@ -670,9 +670,7 @@ export async function createAnalysis(options) {
                     {
                       title: `Installing ${chalk.blue(
                         'Essential Tools'
-                      )}\n${chalk.yellow('Please wait...')}\n${chalk.yellow(
-                        'It may take some time if you are running the installation for the first time'
-                      )}`,
+                      )}\n\t  ${chalk.yellow('Please wait...')}`,
                       enabled: () => true,
                       task: () =>
                         installSVFEssentialTools()

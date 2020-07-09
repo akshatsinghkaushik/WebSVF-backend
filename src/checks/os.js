@@ -7,10 +7,6 @@ const getOS = promisify(getos);
 
 const config_JSON = {};
 
-const printErrorMessage = (message) => {
-  console.error(message);
-};
-
 const logMessage = async (os) => {
   const tasks = new Listr([
     {
@@ -18,7 +14,7 @@ const logMessage = async (os) => {
       enabled: () => true,
       task: () => {
         if (os.os && !os.dist) {
-          printErrorMessage(
+          console.error(
             `\n${chalk.red.bold(
               'ERROR'
             )} Sorry WebSVF is not compatible with ${chalk.cyan.bold(
@@ -32,7 +28,7 @@ const logMessage = async (os) => {
         } else if (
           !(os.release.includes('18.04') || os.release.includes('20.04'))
         ) {
-          printErrorMessage(
+          console.error(
             `\n${chalk.red.bold(
               'ERROR'
             )} Sorry WebSVF is not compatible with version ${chalk.yellow(

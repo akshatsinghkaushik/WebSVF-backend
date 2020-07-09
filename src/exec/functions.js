@@ -79,7 +79,6 @@ export async function installSVFEssentialTools() {
     'wget',
     'libtinfo-dev',
     'libtinfo5',
-    'libtinfo6',
     'libglib2.0-dev',
     'libncurses5',
     'libtool',
