@@ -1,10 +1,10 @@
-import fs from "fs";
-import ncp from "ncp";
-import execa from "execa";
-import chalk from "chalk";
-import path from "path";
-import { promisify } from "util";
-import inquirer from "inquirer";
+import fs from 'fs';
+import ncp from 'ncp';
+import execa from 'execa';
+import chalk from 'chalk';
+import path from 'path';
+import { promisify } from 'util';
+import inquirer from 'inquirer';
 
 String.prototype.endWith = function (endStr) {
   var d = this.length - endStr.length;
@@ -12,17 +12,16 @@ String.prototype.endWith = function (endStr) {
 };
 
 const copy = promisify(ncp);
-const access = promisify(fs.access);
 
 export async function whichbc(bcFileList) {
   const questions = [];
 
-  let defaultbc = bcFileList.filter((e) => e.charAt(0) !== ".");
+  let defaultbc = bcFileList.filter((e) => e.charAt(0) !== '.');
 
   questions.push({
-    type: "list",
-    name: "selection",
-    message: "Please choose which .bc file to use for generating CodeMap:",
+    type: 'list',
+    name: 'selection',
+    message: 'Please choose which .bc file to use for generating CodeMap:',
     choices: bcFileList,
     default: defaultbc || bcFileList[0],
   });
@@ -33,10 +32,10 @@ export async function whichbc(bcFileList) {
 
 export async function installDependencies(dependency) {
   let result;
-  if (dependency === "code") {
-    result = await execa("sudo", ["snap", "install", "--classic", dependency]);
+  if (dependency === 'code') {
+    result = await execa('sudo', ['snap', 'install', '--classic', dependency]);
   } else {
-    result = await execa("sudo", ["apt", "install", "-y", dependency]);
+    result = await execa('sudo', ['apt', 'install', '-y', dependency]);
   }
 
   if (result.failed) {
@@ -52,47 +51,47 @@ export async function copyFiles(from, to) {
 }
 
 export async function updatePackages() {
-  const result = await execa("sudo", ["apt-get", "update"]);
+  const result = await execa('sudo', ['apt-get', 'update']);
   if (result.failed) {
     return Promise.reject(
-      new Error(`Failed to update ${chalk.yellow.bold("Ubuntu Packages")}`)
+      new Error(`Failed to update ${chalk.yellow.bold('Ubuntu Packages')}`)
     );
   }
   return;
 }
 
 export async function download(dir, link) {
-  return execaout("wget", ["-c", link], {
+  return execaout('wget', ['-c', link], {
     cwd: dir,
   });
 }
 
 export async function installSVFEssentialTools() {
-  const result = await execa("sudo", [
-    "apt-get",
-    "install",
-    "-y",
-    "curl",
-    "gcc",
-    "gdb",
-    "build-essential",
-    "cmake",
-    "wget",
-    "libtinfo-dev",
-    "libtinfo5",
-    "libtinfo6",
-    "libglib2.0-dev",
-    "libncurses5",
-    "libtool",
-    "libgraphviz-dev",
-    "graphviz",
-    "python3-pip",
+  const result = await execa('sudo', [
+    'apt-get',
+    'install',
+    '-y',
+    'curl',
+    'gcc',
+    'gdb',
+    'build-essential',
+    'cmake',
+    'wget',
+    'libtinfo-dev',
+    'libtinfo5',
+    'libtinfo6',
+    'libglib2.0-dev',
+    'libncurses5',
+    'libtool',
+    'libgraphviz-dev',
+    'graphviz',
+    'python3-pip',
   ]); //'libtinfo6',
   if (result.failed) {
     return Promise.reject(
       new Error(
         `Failed to install ${chalk.yellow.bold(
-          "Essential Tools for SVF Installation"
+          'Essential Tools for SVF Installation'
         )}`
       )
     );
@@ -101,16 +100,16 @@ export async function installSVFEssentialTools() {
 }
 
 export async function installSVFDependencies() {
-  const result = await execa("sudo", [
-    "pip3",
-    "install",
-    "wllvm",
-    "pygraphviz",
+  const result = await execa('sudo', [
+    'pip3',
+    'install',
+    'wllvm',
+    'pygraphviz',
   ]);
   if (result.failed) {
     return Promise.reject(
       new Error(
-        `Failed to install ${chalk.yellow.bold("WLLVM and pygraphviz")}`
+        `Failed to install ${chalk.yellow.bold('WLLVM and pygraphviz')}`
       )
     );
   }
@@ -118,54 +117,23 @@ export async function installSVFDependencies() {
 }
 
 export async function installVSCodeDependencies() {
-  const result = await execa("sudo", ["apt", "install", "-y", "wget"]);
+  const result = await execa('sudo', ['apt', 'install', '-y', 'wget']);
   if (result.failed) {
     return Promise.reject(
-      new Error(`Failed to install ${chalk.yellow.bold("VSCode Dependencies")}`)
-    );
-  }
-  return;
-}
-
-export async function installVSCode() {
-  const result = await execa("sudo", [
-    "apt",
-    "install",
-    "-y",
-    "./code_1.45.1-1589445302_amd64.deb",
-  ]);
-
-  if (result.failed) {
-    return Promise.reject(
-      new Error(`Failed to install ${chalk.yellow.bold("VSCode")}`)
-    );
-  }
-  return;
-}
-
-export async function removeInstallFiles() {
-  const result = await execa("sudo", [
-    "rm",
-    "-rf",
-    "./code_1.45.1-1589445302_amd64.deb",
-  ]);
-
-  if (result.failed) {
-    return Promise.reject(
-      new Error(`Failed to remove ${chalk.yellow.bold("VSCode Install File")}`)
+      new Error(`Failed to install ${chalk.yellow.bold('VSCode Dependencies')}`)
     );
   }
   return;
 }
 
 export async function createSVFToolsDirectory(user) {
-  const result = await execa("mkdir", ["-m", "a=rwx", "SVFTools"], {
+  const result = await execa('mkdir', ['-m', 'a=rwx', 'SVFTools'], {
     cwd: `/home/${user}`,
   });
 
   if (result.failed) {
     return Promise.reject(
-      new Error(`Failed to remove ${chalk.yellow.bold("VSCode Install File")}`)
+      new Error(`Failed to remove ${chalk.yellow.bold('VSCode Install File')}`)
     );
   }
   return;
@@ -176,7 +144,7 @@ export async function generateJSON(path, projectDir) {
 
   if (result.failed) {
     return Promise.reject(
-      new Error(`Failed to install ${chalk.yellow.bold("SVF")}`)
+      new Error(`Failed to install ${chalk.yellow.bold('SVF')}`)
     );
   }
   return;
@@ -215,7 +183,7 @@ export function scanbc(dir) {
   var allFilesList = [];
   readAllFileList(filesDir, allFilesList);
   filesList.forEach((element) => {
-    if (element.endWith(".bc")) {
+    if (element.endWith('.bc')) {
       bcFilesList.push(element);
     }
   });
