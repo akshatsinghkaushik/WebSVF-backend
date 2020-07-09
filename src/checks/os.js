@@ -29,7 +29,9 @@ const logMessage = async (os) => {
           );
 
           throw new Error('Not Compatible');
-        } else if (!os.release.includes('18.04')) {
+        } else if (
+          !(os.release.includes('18.04') || os.release.includes('20.04'))
+        ) {
           printErrorMessage(
             `\n${chalk.red.bold(
               'ERROR'
