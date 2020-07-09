@@ -187,7 +187,6 @@ export async function cli(args) {
 
   try {
     options = await checkOS(options);
-
     if (options.check) {
       options = await promptForMissingOptions(options);
 
@@ -196,7 +195,7 @@ export async function cli(args) {
       await createAnalysis(options);
     }
   } catch (err) {
-    throw new Error(err);
+    console.error(err);
   }
 
   //console.log(options);
