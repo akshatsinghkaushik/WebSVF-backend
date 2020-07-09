@@ -4,8 +4,7 @@ import execa from "execa";
 import chalk from "chalk";
 import path from "path";
 import { promisify } from "util";
-import inquirer from 'inquirer';
-
+import inquirer from "inquirer";
 
 String.prototype.endWith = function (endStr) {
   var d = this.length - endStr.length;
@@ -18,7 +17,7 @@ const access = promisify(fs.access);
 export async function whichbc(bcFileList) {
   const questions = [];
 
-  let defaultbc = bcFileList.filter((e)=>(e.charAt(0)!=='.'))
+  let defaultbc = bcFileList.filter((e) => e.charAt(0) !== ".");
 
   questions.push({
     type: "list",
@@ -173,7 +172,7 @@ export async function createSVFToolsDirectory(user) {
 }
 
 export async function generateJSON(path, projectDir) {
-  const result = execa.node(`${path}generateJSON.js`, [`${projectDir}`]);
+  const result = await execa.node(`${path}generateJSON.js`, [`${projectDir}`]);
 
   if (result.failed) {
     return Promise.reject(
