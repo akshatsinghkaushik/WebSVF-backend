@@ -1,17 +1,370 @@
 import fs from 'fs';
 import ncp from 'ncp';
 import execa from 'execa';
+import execao from 'execa-output';
 import chalk from 'chalk';
+import Listr from 'listr';
 import path from 'path';
 import { promisify } from 'util';
 import inquirer from 'inquirer';
+
+const copy = promisify(ncp);
 
 String.prototype.endWith = function (endStr) {
   var d = this.length - endStr.length;
   return d >= 0 && this.lastIndexOf(endStr) == d;
 };
 
-const copy = promisify(ncp);
+export function installSVF(dirPresence, options, scriptsPath) {
+  return new Listr(
+    [
+      {
+        title: `Installing ${chalk.inverse(chalk.blue('SVF Dependencies'))}`,
+        enabled: () => true,
+        task: () => {
+          return new Listr(
+            [
+              {
+                title: `Updating ${chalk.blue('Ubuntu Packages')}`,
+                enabled: () => true,
+                task: () =>
+                  updatePackages()
+                    .then(() => {})
+                    .catch((e) => {
+                      console.error(
+                        `${chalk.inverse(
+                          `Something went wrong updating ${chalk.red.bold(
+                            'Ubuntu Packages'
+                          )}${'\n'.repeat(
+                            2
+                          )} Please Run the command ${chalk.green.italic(
+                            'sudo create-analysis'
+                          )} again to finish setting up  ${'\n'.repeat(
+                            2
+                          )} The Error Log from the failed installation:`
+                        )}`
+                      );
+                      console.error(e);
+                      process.exit(1);
+                    }),
+              },
+              {
+                title: `Installing ${chalk.blue(
+                  'Essential Tools'
+                )}\n\t  ${chalk.yellow('Please wait...')}`,
+                enabled: () => true,
+                task: () =>
+                  installSVFEssentialTools()
+                    .then(() => {})
+                    .catch((e) => {
+                      console.error(
+                        `${chalk.inverse(
+                          `Something went wrong installing ${chalk.red.bold(
+                            'Essential Tools for SVF Installation'
+                          )}${'\n'.repeat(
+                            2
+                          )} Please Run the command ${chalk.green.italic(
+                            'sudo create-analysis'
+                          )} again to finish setting up  ${'\n'.repeat(
+                            2
+                          )} The Error Log from the failed installation:`
+                        )}`
+                      );
+                      console.error(e);
+                      process.exit(1);
+                    }),
+              },
+              {
+                title: `Installing ${chalk.blue('WLLVM and pygraphviz')}`,
+                enabled: () => true,
+                task: () =>
+                  installSVFDependencies()
+                    .then(() => {})
+                    .catch((e) => {
+                      console.error(
+                        `${chalk.inverse(
+                          `Something went wrong installing ${chalk.red.bold(
+                            'WLLVM and pygraphviz'
+                          )}${'\n'.repeat(
+                            2
+                          )} Please Run the command ${chalk.green.italic(
+                            'sudo create-analysis'
+                          )} again to finish setting up  ${'\n'.repeat(
+                            2
+                          )} The Error Log from the failed installation:`
+                        )}`
+                      );
+                      console.error(e);
+                      process.exit(1);
+                    }),
+              },
+            ],
+            { concurrent: false }
+          );
+        },
+      },
+      {
+        title: `Creating ${chalk.inverse.blue('SVF-Tools')} directory`,
+        enabled: () => !dirPresence.svfToolsR,
+        skip: () => !dirPresence.homeW,
+        task: () =>
+          createSVFToolsDirectory(options.account)
+            .then(() => {})
+            .catch((e) => {
+              console.error(
+                `${chalk.inverse(
+                  `Something went wrong creating ${chalk.red.bold(
+                    'SVF-Tools'
+                  )} directory${'\n'.repeat(
+                    2
+                  )} Please Run the command ${chalk.green.italic(
+                    'sudo create-analysis'
+                  )} again to finish setting up  ${'\n'.repeat(
+                    2
+                  )} The Error Log from the failed installation:`
+                )}`
+              );
+              console.error(e);
+              process.exit(1);
+            }),
+      },
+      {
+        title: `Downloading ${chalk.inverse.blue('LLVM-Clang 10.0')} binary`,
+        enabled: () => !dirPresence.llvmclangUnpack && !dirPresence.llvmclang,
+        skip: () => !dirPresence.homeW,
+        task: () =>
+          execao(
+            'wget',
+            [
+              '-c',
+              'https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
+            ],
+            {
+              cwd: `/home/${options.account}/SVFTools/`,
+            }
+          ),
+      },
+      {
+        title: `Downloading ${chalk.inverse.blue('SVF')} binary`,
+        enabled: () => !dirPresence.svfR,
+        skip: () => !dirPresence.homeW,
+        task: () =>
+          execao(
+            'wget',
+            [
+              '-c',
+              'https://github.com/SVF-tools/WebSVF/releases/download/1.0/SVF.tar.xz',
+            ],
+            {
+              cwd: `/home/${options.account}/SVFTools/`,
+            }
+          ),
+      },
+      {
+        title: `Unpacking ${chalk.inverse.blue('LLVM-Clang 10.0')} binary`,
+        enabled: () => !dirPresence.llvmclangUnpack && !dirPresence.llvmclang,
+        skip: () => !dirPresence.homeW,
+        task: () =>
+          execao(
+            'tar',
+            [
+              '-xvf',
+              'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
+              '-C',
+              `/home/${options.account}/SVFTools/`,
+            ],
+            {
+              cwd: `/home/${options.account}/SVFTools/`,
+            },
+            (result) => {
+              dirPresence.llvmclangUnpack = true;
+            }
+          ),
+      },
+      {
+        title: `Renaming ${chalk.inverse.blue('LLVM-Clang')} directory`,
+        enabled: () => !dirPresence.llvmclang && dirPresence.llvmclangUnpack,
+        skip: () => !dirPresence.homeW,
+        task: () =>
+          execao(
+            'mv',
+            [
+              `/home/${options.account}/SVFTools/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`,
+              `/home/${options.account}/SVFTools/clang-llvm`,
+            ],
+            {
+              cwd: `/home/${options.account}/SVFTools/`,
+            },
+            (result) => {
+              dirPresence.llvmclang = true;
+            }
+          ),
+      },
+      {
+        title: `Unpacking ${chalk.inverse.blue('SVF')} binary`,
+        enabled: () => !dirPresence.svfR,
+        skip: () => !dirPresence.homeW,
+        task: () =>
+          execao(
+            'tar',
+            ['-xvf', 'SVF.tar.xz', '-C', `/home/${options.account}/SVFTools/`],
+            {
+              cwd: `/home/${options.account}/SVFTools/`,
+            },
+            (result) => {
+              dirPresence.svfR = true;
+            }
+          ),
+      },
+      {
+        title: `Setting PATHs for ${chalk.inverse.blue('LLVM, Clang & SVF')}`,
+        enabled: () => true,
+        task: () =>
+          execao(
+            'cp',
+            ['-f', 'setupSVF.sh', `/home/${options.account}/SVFTools/`],
+            {
+              cwd: scriptsPath,
+            },
+            (result) => {
+              fs.readFile(
+                `/home/${options.account}/SVFTools/setupSVF.sh`,
+                (err, data) => {
+                  if (err) {
+                    throw err;
+                  }
+                  const dataSplit = data
+                    .toString()
+                    .replace(
+                      '#########',
+                      `########\nINSTALL_DIR="/home/${options.account}/SVFTools"`
+                    )
+                    .replace(/\r\n/gm, '\n');
+
+                  fs.writeFile(
+                    `/home/${options.account}/SVFTools/setupSVF.sh`,
+                    `${dataSplit}`,
+                    (err) => {
+                      if (err) throw err;
+
+                      execao(
+                        'sh',
+                        ['setupSVF.sh'],
+                        {
+                          cwd: `/home/${options.account}/SVFTools/`,
+                        },
+                        (result) => {
+                          console.error(
+                            `${chalk.inverse.green(
+                              'SUCCESS'
+                            )}: Please RESTART your system to finish Installation`
+                          );
+                          execao(
+                            'rm',
+                            [
+                              '-rf',
+                              'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
+                              `SVF.tar.xz`,
+                              'setupSVF.sh',
+                            ],
+                            {
+                              cwd: `/home/${options.account}/SVFTools/`,
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          ),
+      },
+    ],
+    { concurrent: false }
+  );
+}
+
+export function uninstallComponents(options, scriptsPath) {
+  return new Listr(
+    [
+      {
+        title: `Removing ${chalk.blue('Extension files')}`,
+        enabled: () => true,
+        task: () =>
+          execao(
+            'rm',
+            [
+              '-rf',
+              'WebSVF-frontend-extension',
+              'codemap-extension',
+              'codemap-extension-0.0.1/',
+              'WebSVF-frontend-extension_0.9.0/',
+            ],
+            {
+              cwd: `/home/${options.account}/.vscode/extensions`,
+            }
+          ),
+      },
+      {
+        title: `Removing ${chalk.inverse.blue('LLVM, Clang & SVF')}`,
+        enabled: () => true,
+        task: () =>
+          execao(
+            'cp',
+            ['-f', 'removeSVF.sh', `/home/${options.account}/SVFTools/`],
+            {
+              cwd: scriptsPath,
+            },
+            (result) => {
+              fs.readFile(
+                `/home/${options.account}/SVFTools/removeSVF.sh`,
+                (err, data) => {
+                  if (err) {
+                    throw err;
+                  }
+                  const dataSplit = data
+                    .toString()
+                    .replace(
+                      '#########',
+                      `########\nINSTALL_DIR="/home/${options.account}/SVFTools"`
+                    )
+                    .replace(/\r\n/gm, '\n');
+
+                  fs.writeFile(
+                    `/home/${options.account}/SVFTools/removeSVF.sh`,
+                    `${dataSplit}`,
+                    (err) => {
+                      if (err) throw err;
+
+                      execao(
+                        'sh',
+                        ['removeSVF.sh'],
+                        {
+                          cwd: `/home/${options.account}/SVFTools/`,
+                        },
+                        (result) => {
+                          console.error(
+                            `${chalk.inverse.green(
+                              'SUCCESS'
+                            )}: WebSVF Uninstalled`
+                          );
+                          execao('rm', ['-rf', 'SVFTools', '.bug-report'], {
+                            cwd: `/home/${options.account}`,
+                          });
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          ),
+      },
+    ],
+    { concurrent: false }
+  );
+}
 
 export async function whichbc(bcFileList) {
   const questions = [];
