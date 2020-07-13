@@ -5,7 +5,7 @@ import execa from 'execa';
 import chalk from 'chalk';
 import { promisify } from 'util';
 import fs from 'fs';
-import isElevated from 'is-elevated';
+//import isElevated from 'is-elevated';
 
 import { mapExclude } from './exec/excludedUserNames';
 import { checkOS } from './checks/os';
@@ -51,41 +51,11 @@ async function promptForMissingOptions(options) {
 
   const defaultAccount = mapT[0];
 
-  const isAdmin = await isElevated();
+  //const isAdmin = await isElevated();
 
   const dirPresence = {
     argsDir: true,
   };
-
-  if (options.runInstall && !isAdmin) {
-    console.error(
-      `%s The Installation cannot proceed without elevated privileges (Root access)\nPlease run the command again with elevated privileges (eg. on Linux => ${chalk.green(
-        'sudo command'
-      )})`,
-      chalk.red.bold('ERROR')
-    );
-    process.exit(1);
-  }
-
-  if (options.runUnInstall && !isAdmin) {
-    console.error(
-      `%s The Uninstallation cannot proceed without elevated privileges (Root access)\nPlease run the command again with elevated privileges (eg. on Linux => ${chalk.green(
-        'sudo command'
-      )})`,
-      chalk.red.bold('ERROR')
-    );
-    process.exit(1);
-  }
-
-  if (!options.runInstall && !options.runUnInstall && isAdmin) {
-    console.error(
-      `%s The operation cannot proceed with elevated privileges (Root access)\nPlease run the command again without elevated privileges (eg. on Linux => run the command without the ${chalk.green(
-        'sudo'
-      )} keyword)`,
-      chalk.red.bold('ERROR')
-    );
-    process.exit(1);
-  }
 
   try {
     await access(options.generateJSONDir, fs.constants.R_OK);

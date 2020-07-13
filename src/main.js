@@ -7,15 +7,9 @@ import commandExists from 'command-exists';
 import fs from 'fs';
 import { projectInstall } from 'pkg-install';
 import {
-  createSVFToolsDirectory,
-  installDependencies,
-  installSVFEssentialTools,
-  installSVFDependencies,
-  updatePackages,
   scanbc,
   whichbc,
-  uninstallComponents,
-  installSVF,
+  uninstallComponents
 } from './exec/functions';
 
 const access = promisify(fs.access);
@@ -27,16 +21,10 @@ export async function createAnalysis(options) {
     node: false,
     nodeVers: false,
     npm: false,
-    git: false,
-    svf: false,
   };
 
   const dirPresence = {
-    svfToolsR: true,
     homeW: true,
-    svfR: true,
-    llvmclangUnpack: true,
-    llvmclang: true,
     codemap: true,
     frontend: true,
     frontendServer: true,
@@ -47,36 +35,6 @@ export async function createAnalysis(options) {
     await access(`/home/${options.account}/.bug-report`, fs.constants.R_OK);
   } catch (err) {
     dirPresence.frontendServer = false;
-  }
-
-  try {
-    await access(`/home/${options.account}/SVFTools`, fs.constants.R_OK);
-  } catch (err) {
-    dirPresence.svfToolsR = false;
-  }
-
-  try {
-    await access(`/home/${options.account}/SVFTools/SVF`, fs.constants.R_OK);
-  } catch (err) {
-    dirPresence.svfR = false;
-  }
-
-  try {
-    await access(
-      `/home/${options.account}/SVFTools/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`,
-      fs.constants.R_OK
-    );
-  } catch (err) {
-    dirPresence.llvmclangUnpack = false;
-  }
-
-  try {
-    await access(
-      `/home/${options.account}/SVFTools/clang-llvm`,
-      fs.constants.R_OK
-    );
-  } catch (err) {
-    dirPresence.llvmclang = false;
   }
 
   try {
@@ -112,11 +70,18 @@ export async function createAnalysis(options) {
     dirPresence.extDir = false;
   }
 
-  if (dirPresence.llvmclang && dirPresence.svfR) {
-    depInstall.svf = true;
-  }
-
   let currentFileUrl = import.meta.url;
+  let binPath = 
+    '/' +
+    path.join(
+      decodeURI(
+        new URL(currentFileUrl).pathname.substring(
+          new URL(currentFileUrl).pathname.indexOf('/') + 1
+        )
+      ),
+      '../../bin'
+    );
+
   let scriptsPath =
     '/' +
     path.join(
@@ -237,17 +202,7 @@ export async function createAnalysis(options) {
                     depInstall.vscode = true;
                   })
                   .catch(() => {}),
-            },
-            {
-              title: `Checking ${chalk.inverse('Git')} Installation`,
-              enabled: () => true,
-              task: () =>
-                commandExists('git')
-                  .then(() => {
-                    depInstall.git = true;
-                  })
-                  .catch(() => {}),
-            },
+            }
           ],
           { concurrent: false }
         );
@@ -261,7 +216,6 @@ export async function createAnalysis(options) {
           depInstall.vscode === true &&
           depInstall.npm === true &&
           depInstall.node === true &&
-          depInstall.git === true &&
           depInstall.nodeVers === true
         ) {
           return true;
@@ -280,33 +234,6 @@ export async function createAnalysis(options) {
                 execao('snap', ['install', 'code', '--classic'], null, () => {
                   depInstall.vscode = true;
                 }),
-            },
-            {
-              title: `Installing ${chalk.inverse('Git')}`,
-              enabled: () => true,
-              skip: () => depInstall.git,
-              task: () =>
-                installDependencies('git')
-                  .then(() => {
-                    depInstall.git = true;
-                  })
-                  .catch((e) => {
-                    console.error(
-                      `${chalk.inverse(
-                        `Something went wrong installing ${chalk.red.bold(
-                          'Git'
-                        )}${'\n'.repeat(
-                          2
-                        )} Please Run the command ${chalk.green.italic(
-                          'sudo create-analysis --install'
-                        )} again to finish setting up  ${'\n'.repeat(
-                          2
-                        )} The Error Log from the failed installation:`
-                      )}`
-                    );
-                    console.error(e);
-                    process.exit(1);
-                  }),
             },
             {
               title: `Installing ${chalk.inverse('Unzip')}`,
@@ -631,35 +558,26 @@ export async function createAnalysis(options) {
       },
     },
     {
-      title: `Installing ${chalk.inverse('SVF')}`,
-      enabled: () => options.runInstall,
-      skip: () => depInstall.svf,
-      task: () => installSVF(dirPresence, options, scriptsPath),
-    },
-    {
       title: `Uninstalling ${chalk.inverse('WebSVF')}`,
       enabled: () => options.runUnInstall,
-      skip: () => !depInstall.svf,
       task: () => uninstallComponents(options, scriptsPath),
     },
     {
       title: `Generating files for ${chalk.yellow.bold('WebSVF-frontend')}`,
       enabled: () => !options.runInstall && !options.runUnInstall,
-      //skip: () => depInstall.svf,
       task: () =>
         execao(
           'node',
-          [`${srcPath}generateJSON.js`, `${options.generateJSONDir}`],
+          [`${srcPath}generateJsonForSVFExample.js`, `${options.generateJSONDir}`, `${binPath}/svf-ex --leak`],
           null,
-          () => {}
+          (result) => {console.log(result)}
         ),
     },
     {
       title: `Generating files ${chalk.yellow.bold(
         'WebSVF-codemap-extension'
       )}`,
-      enabled: () => !options.runInstall && !options.runUnInstall,
-      skip: () => depInstall.svf,
+      enabled: () => false, //!options.runInstall && !options.runUnInstall,
       task: () => {
         var bcFilesList = scanbc(`${options.generateJSONDir}`);
         var select = whichbc(bcFilesList);
@@ -727,12 +645,6 @@ export async function createAnalysis(options) {
   } catch (e) {
     console.error(e);
   }
-
-  if (!options.runInstall && !options.runUnInstall) {
-  }
-
-  //console.log(depInstall);
-  //console.log(dirPresence);
 
   return true;
 }
