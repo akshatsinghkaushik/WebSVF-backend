@@ -3,30 +3,34 @@ import Listr from 'listr';
 import path from 'path';
 import { promisify } from 'util';
 import execao from 'execa-output';
-import commandExists from 'command-exists';
 import fs from 'fs';
+import commandExists from 'command-exists';
 import getHomePath from 'home-path';
-import { projectInstall } from 'pkg-install';
 
 import {
   scanbc,
-  whichbc,
-  uninstallComponents
-} from './exec/functions';
+  whichbc
+} from './helper/helperFunctions';
+
+import {uninstallComponents} from './run/uninstall';
+
+import {installFrontendServer} from './run/install/frontendServer';
+
+import {installExtensions} from './run/install/extensions';
+
+import {prepCodemap} from './run/prep/codemap';
 
 const access = promisify(fs.access);
 
 export async function createAnalysis(options) {
   //A JavaScript object containing boolean values representing whether a particular depndency is installed or not
-  const depInstall = {
+  let depInstall = {
     vscode: false,
     node: false,
     nodeVers: false,
-    npm: false,
   };
 
   const dirPresence = {
-    homeW: true,
     codemap: true,
     frontend: true,
     frontendServer: true,
@@ -40,12 +44,6 @@ export async function createAnalysis(options) {
     await access(`${homePath}/.bug-report`, fs.constants.R_OK);
   } catch (err) {
     dirPresence.frontendServer = false;
-  }
-
-  try {
-    await access(`${homePath}`, fs.constants.W_OK);
-  } catch (err) {
-    dirPresence.homeW = false;
   }
 
   try {
@@ -124,35 +122,9 @@ export async function createAnalysis(options) {
       title: 'Checking Dependency Installations',
       enabled: () => !options.runUnInstall,
       task: () => {
+    
         return new Listr(
           [
-            {
-              title: `Checking ${chalk.inverse('NPM')} Installation`,
-              enabled: () => true,
-              task: () =>
-                commandExists('npm')
-                  .then(() => {
-                    depInstall.npm = true;
-                  })
-                  .catch(() => {
-                    console.error(
-                      `${chalk.inverse(
-                        `${chalk.blue.bold(
-                          'npm'
-                        )} command not found${'\n'.repeat(
-                          2
-                        )} Please install ${chalk.blue.bold(
-                          'NodeJS'
-                        )} version ${chalk.yellow.bold('>=10')} ${'\n'.repeat(
-                          2
-                        )} Then Run the command ${chalk.green.italic(
-                          'sudo create-analysis'
-                        )} again to finish setting up`
-                      )}`
-                    );
-                    process.exit(1);
-                  }),
-            },
             {
               title: `Checking ${chalk.inverse('NodeJS')} Installation`,
               enabled: () => true,
@@ -228,7 +200,6 @@ export async function createAnalysis(options) {
       skip: () => {
         if (
           depInstall.vscode === true &&
-          depInstall.npm === true &&
           depInstall.node === true &&
           depInstall.nodeVers === true
         ) {
@@ -252,7 +223,6 @@ export async function createAnalysis(options) {
             {
               title: `Installing ${chalk.inverse('Unzip')}`,
               enabled: () => true,
-              //skip: () => depInstall.git,
               task: () => execao('sudo', ['apt', 'install', '-y', 'unzip']),
             },
           ],
@@ -262,329 +232,34 @@ export async function createAnalysis(options) {
     },
     {
       title: `Installing ${chalk.inverse('WebSVF frontend-server')}`,
-      enabled: () => !dirPresence.frontendServer && options.runInstall,
-      //skip: () => !options.runInstall,
-      task: () => {
-        return new Listr(
-          [
-            {
-              title: `Downloading ${chalk.inverse('WebSVF-frontend-server')}`,
-              enabled: () => true,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao('wget', [
-                  '-c',
-                  'https://github.com/SVF-tools/WebSVF/releases/download/0.1.0/bug_analyis_front-end-0.0.9.tgz',
-                ]),
-            },
-            {
-              title: `Making directory ${chalk.blue('.bug-report')}`,
-              enabled: () => true,
-              //skip: () => !options.runInstall,
-              task: () =>
-                execao('mkdir', ['-m', 'a=rwx', '.bug-report'], {
-                  cwd: `${homePath}/`,
-                }),
-            },
-            {
-              title: `Unpacking ${chalk.inverse.blue(
-                'WebSVF-frontend-server'
-              )} files`,
-              enabled: () => true,
-              skip: () => !dirPresence.homeW,
-              task: () =>
-                execao(
-                  'mv',
-                  [
-                    '-f',
-                    `bug_analyis_front-end-0.0.9.tgz`,
-                    `${homePath}/.bug-report/bug_analyis_front-end-0.0.9.tgz`,
-                  ],
-                  null,
-                  (result) => {
-                    execao(
-                      'tar',
-                      ['-xzvf', 'bug_analyis_front-end-0.0.9.tgz'],
-                      {
-                        cwd: `${homePath}/.bug-report/`,
-                      },
-                      (result) => {
-                        execao(
-                          'find',
-                          [
-                            'package',
-                            '-maxdepth',
-                            '1',
-                            '-mindepth',
-                            '1',
-                            '-exec',
-                            'mv',
-                            '{}',
-                            '.',
-                            ';',
-                          ],
-                          {
-                            cwd: `${homePath}/.bug-report/`,
-                          }
-                        );
-                      }
-                    );
-                  }
-                ),
-            },
-            {
-              title: `Installing ${chalk.inverse.blue(
-                'WebSVF-frontend-server'
-              )}`,
-              enabled: () => true,
-              skip: () => !dirPresence.homeW,
-              task: () =>
-                projectInstall({
-                  cwd: `${homePath}/.bug-report/`,
-                }),
-            },
-            {
-              title: `Granting the user access to files`,
-              enabled: () => true,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao('chmod', [
-                  '-R',
-                  'u=rwx,g=rwx,o=rwx',
-                  `${homePath}/.bug-report/`,
-                ]),
-            },
-            {
-              title: `Removing ${chalk.blue('Installation files')}`,
-              enabled: () => true,
-              skip: () => !options.runInstall,
-              task: () => {
-                execao('rm', ['-rf', 'bug_analyis_front-end-0.0.9.tgz'], {
-                  cwd: `${homePath}/.bug-report/`,
-                });
-                execao('rm', ['-rf', 'package/'], {
-                  cwd: `${homePath}/.bug-report/`,
-                });
-              },
-            },
-          ],
-          { concurrent: false }
-        );
-      },
+      enabled: () => options.runInstall,
+      skip: () => dirPresence.frontendServer,
+      task: () => installFrontendServer(homePath)
     },
     {
       title: `Installing ${chalk.inverse('WebSVF Extensions')}`,
       enabled: () =>
         depInstall.vscode && !dirPresence.frontend && options.runInstall,
-      //skip: () => !options.runInstall,
-      task: () => {
-        return new Listr(
-          [
-            {
-              title: `Downloading ${chalk.inverse(
-                'WebSVF-frontend-extension'
-              )}`,
-              enabled: () => depInstall.vscode && !dirPresence.frontend,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao('wget', [
-                  '-c',
-                  'https://github.com/SVF-tools/WebSVF/releases/download/0.9.0/WebSVF-frontend-extension_0.9.0.vsix',
-                ]),
-            },
-            {
-              title: `Downloading ${chalk.inverse('WebSVF-codemap-extension')}`,
-              enabled: () => depInstall.vscode && !dirPresence.codemap,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao('wget', [
-                  '-c',
-                  'https://github.com/SVF-tools/WebSVF/releases/download/0.0.1/codemap-extension-0.0.1.vsix',
-                ]),
-            },
-            {
-              title: `Making directory ${chalk.blue('VSCode Extensions')}`,
-              enabled: () => !dirPresence.extDir,
-              //skip: () => !options.runInstall,
-              task: () =>
-                execao('mkdir', ['-m', 'a=rwx', '.vscode'], {
-                  cwd: `${homePath}/`,
-                }),
-            },
-            {
-              title: `Making directory ${chalk.blue('VSCode Extensions')}`,
-              enabled: () => !dirPresence.extDir,
-              //skip: () => !options.runInstall,
-              task: () =>
-                execao('mkdir', ['-m', 'a=rwx', '-p', 'extensions'], {
-                  cwd: `${homePath}/.vscode`,
-                }),
-            },
-            {
-              title: `Moving ${chalk.blue('WebSVF-frontend-extension')}`,
-              enabled: () => depInstall.vscode && !dirPresence.frontend,
-              //skip: () => !options.runInstall,
-              task: () =>
-                execao('mv', [
-                  '-f',
-                  'WebSVF-frontend-extension_0.9.0.vsix',
-                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension_0.9.0.zip`,
-                ]),
-            },
-            {
-              title: `Moving ${chalk.blue('WebSVF-codemap-extension')}`,
-              enabled: () => depInstall.vscode && !dirPresence.codemap,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao('mv', [
-                  '-f',
-                  'codemap-extension-0.0.1.vsix',
-                  `${homePath}/.vscode/extensions/codemap-extension-0.0.1.zip`,
-                ]),
-            },
-            {
-              title: `Making directory ${chalk.blue(
-                'WebSVF-codemap-extension'
-              )}`,
-              enabled: () => depInstall.vscode && !dirPresence.codemap,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao('mkdir', ['-m', 'a=rwx', 'codemap-extension-0.0.1'], {
-                  cwd: `${homePath}/.vscode/extensions`,
-                }),
-            },
-            {
-              title: `Making directory ${chalk.blue(
-                'WebSVF-frontend-extension'
-              )}`,
-              enabled: () => depInstall.vscode && !dirPresence.frontend,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao(
-                  'mkdir',
-                  ['-m', 'a=rwx', 'WebSVF-frontend-extension_0.9.0'],
-                  {
-                    cwd: `${homePath}/.vscode/extensions`,
-                  }
-                ),
-            },
-            {
-              title: `Extracting ${chalk.blue('WebSVF-codemap-extension')}`,
-              enabled: () => depInstall.vscode && !dirPresence.codemap,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao(
-                  'unzip',
-                  [
-                    'codemap-extension-0.0.1.zip',
-                    '-d',
-                    `${homePath}/.vscode/extensions/codemap-extension-0.0.1`,
-                  ],
-                  {
-                    cwd: `${homePath}/.vscode/extensions`,
-                  }
-                ),
-            },
-            {
-              title: `Extracting ${chalk.blue('WebSVF-frontend-extension')}`,
-              enabled: () => depInstall.vscode && !dirPresence.frontend,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao(
-                  'unzip',
-                  [
-                    'WebSVF-frontend-extension_0.9.0.zip',
-                    '-d',
-                    `${homePath}/.vscode/extensions/WebSVF-frontend-extension_0.9.0`,
-                  ],
-                  {
-                    cwd: `${homePath}/.vscode/extensions`,
-                  }
-                ),
-            },
-            {
-              title: `Extracting ${chalk.blue('WebSVF-codemap-extension')}`,
-              enabled: () => depInstall.vscode && !dirPresence.codemap,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao('mv', [
-                  '-f',
-                  `${homePath}/.vscode/extensions/codemap-extension-0.0.1/extension/`,
-                  `${homePath}/.vscode/extensions/codemap-extension/`,
-                ]),
-            },
-            {
-              title: `Extracting ${chalk.blue('WebSVF-frontend-extension')}`,
-              enabled: () => depInstall.vscode && !dirPresence.frontend,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao('mv', [
-                  '-f',
-                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension_0.9.0/extension/`,
-                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension/`,
-                ]),
-            },
-            {
-              title: `Allowing ${chalk.blue('access to extensions')}`,
-              enabled: () =>
-                depInstall.vscode &&
-                !dirPresence.frontend &&
-                !dirPresence.codemap,
-              skip: () => !options.runInstall,
-              task: () => {
-                execao('chmod', [
-                  '-R',
-                  'u=rwx,g=rwx,o=rwx',
-                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension/`,
-                ]);
-                execao('chmod', [
-                  '-R',
-                  'u=rwx,g=rwx,o=rwx',
-                  `${homePath}/.vscode/extensions/codemap-extension/`,
-                ]);
-              },
-            },
-            {
-              title: `Removing ${chalk.blue('Extension files')}`,
-              enabled: () =>
-                depInstall.vscode &&
-                !dirPresence.frontend &&
-                !dirPresence.codemap,
-              skip: () => !options.runInstall,
-              task: () =>
-                execao(
-                  'rm',
-                  [
-                    '-rf',
-                    'WebSVF-frontend-extension_0.9.0.zip',
-                    'codemap-extension-0.0.1.zip',
-                    'WebSVF-frontend-extension_0.9.0/',
-                    'codemap-extension-0.0.1/',
-                  ],
-                  {
-                    cwd: `${homePath}/.vscode/extensions`,
-                  }
-                ),
-            },
-          ],
-          { concurrent: false }
-        );
-      },
+      task: () => installExtensions(homePath, depInstall, dirPresence)
     },
+
+    //
     {
       title: `Uninstalling ${chalk.inverse('WebSVF')}`,
       enabled: () => options.runUnInstall,
       task: () => uninstallComponents(homePath),
     },
+
+    //
     {
       title: `Generating files for ${chalk.yellow.bold('WebSVF-frontend')}`,
       enabled: () => !options.runInstall && !options.runUnInstall,
       task: () =>
         execao(
           'node',
-          [`${srcPath}generateJSON.js`, `${options.generateJSONDir}`, `${binPath}/svf-ex --leak`],
-          null,
-          (result) => {console.log(result)}
+          [`${srcPath}run/prep/generateJSON.js`, `${options.generateJSONDir}`, `${binPath}/svf-ex --leak`],
+          null //,
+          //(result) => {console.log(result)}
         ),
     },
     {
@@ -592,64 +267,13 @@ export async function createAnalysis(options) {
         'WebSVF-codemap-extension'
       )}`,
       enabled: () => false, //!options.runInstall && !options.runUnInstall,
-      task: () => {
-        var bcFilesList = scanbc(`${options.generateJSONDir}`);
-        var select = whichbc(bcFilesList);
+      task: () => prepCodemap(whichbc(scanbc(`${options.generateJSONDir}`)), options, scriptsPath)
+      // {
+      //   var bcFilesList = scanbc(`${options.generateJSONDir}`);
+      //   var select = whichbc(bcFilesList);
 
-        return new Listr([
-          {
-            title: `Moving Files for ${chalk.yellow.bold(
-              'WebSVF-codemap-extension'
-            )}`,
-            enabled: () => !options.runInstall && !options.runUnInstall,
-            task: () =>
-              execao(
-                'cp',
-                [
-                  `-t`,
-                  `${options.generateJSONDir}`,
-                  'CodeMap.sh',
-                  'Bc2Dot.sh',
-                  'Dot2Json.py',
-                ],
-                {
-                  cwd: scriptsPath,
-                },
-                () => {}
-              ),
-          },
-          {
-            title: `Generating Graphs for ${chalk.yellow.bold(
-              'WebSVF-codemap-extension'
-            )}`,
-            enabled: () => !options.runInstall && !options.runUnInstall,
-            task: () =>
-              execao(
-                'bash',
-                [`CodeMap.sh`, select],
-                {
-                  cwd: options.generateJSONDir,
-                },
-                () => {}
-              ),
-          },
-          {
-            title: `Removing files for ${chalk.yellow.bold(
-              'WebSVF-codemap-extension'
-            )}`,
-            enabled: () => !options.runInstall && !options.runUnInstall,
-            task: () =>
-              execao(
-                'rm',
-                [`-rf`, 'CodeMap.sh', 'Bc2Dot.sh', 'Dot2Json.py'],
-                {
-                  cwd: options.generateJSONDir,
-                },
-                () => {}
-              ),
-          },
-        ]);
-      },
+        
+      // },
     },
   ]);
 
@@ -659,6 +283,4 @@ export async function createAnalysis(options) {
   } catch (e) {
     console.error(e);
   }
-
-  return true;
 }

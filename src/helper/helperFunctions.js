@@ -1,9 +1,5 @@
 import fs from 'fs';
 import ncp from 'ncp';
-import execa from 'execa';
-import execao from 'execa-output';
-import chalk from 'chalk';
-import Listr from 'listr';
 import path from 'path';
 import { promisify } from 'util';
 import inquirer from 'inquirer';
@@ -14,47 +10,6 @@ String.prototype.endWith = function (endStr) {
   var d = this.length - endStr.length;
   return d >= 0 && this.lastIndexOf(endStr) == d;
 };
-
-export function uninstallComponents(homePath) {
-  return new Listr(
-    [
-      {
-        title: `Removing ${chalk.blue('Extension files')}`,
-        enabled: () => true,
-        task: () =>
-          execao(
-            'rm',
-            [
-              '-rf',
-              'WebSVF-frontend-extension',
-              'codemap-extension',
-              'codemap-extension-0.0.1/',
-              'WebSVF-frontend-extension_0.9.0/',
-            ],
-            {
-              cwd: `${homePath}/.vscode/extensions`,
-            }
-          ),
-      },
-      {
-        title: `Removing ${chalk.blue('WebSVF-frontend-server')}`,
-        enabled: () => true,
-        task: () =>
-          execao(
-            'rm',
-            [
-              '-rf',
-              '.bug-report'
-            ],
-            {
-              cwd: `${homePath}/`,
-            }
-          ),
-      }
-    ],
-    { concurrent: false }
-  );
-}
 
 export async function whichbc(bcFileList) {
   const questions = [];
@@ -80,30 +35,9 @@ export async function copyFiles(from, to) {
 }
 
 export async function download(dir, link) {
-  return execaout('wget', ['-c', link], {
+  return execao('wget', ['-c', link], {
     cwd: dir,
   });
-}
-
-export async function installVSCodeDependencies() {
-  const result = await execa('sudo', ['apt', 'install', '-y', 'wget']);
-  if (result.failed) {
-    return Promise.reject(
-      new Error(`Failed to install ${chalk.yellow.bold('VSCode Dependencies')}`)
-    );
-  }
-  return;
-}
-
-export async function generateJSON(path, projectDir) {
-  const result = await execa.node(`${path}generateJSON.js`, [`${projectDir}`]);
-
-  if (result.failed) {
-    return Promise.reject(
-      new Error(`Failed to install ${chalk.yellow.bold('SVF')}`)
-    );
-  }
-  return;
 }
 
 function readFileList(dir, filesList = []) {

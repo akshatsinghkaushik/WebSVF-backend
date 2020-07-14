@@ -55,7 +55,6 @@ const logMessage = async (os) => {
 };
 
 export async function checkOS(options) {
-  let error = null;
 
   return new Promise((resolve, reject) => {
     try {

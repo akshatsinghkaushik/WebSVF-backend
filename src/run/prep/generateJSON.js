@@ -42,7 +42,6 @@ if (bcFilesList.length == 0) {
 
 //Step 3: Loop bcFilesList and generate bug reports
 bcFilesList.forEach(element => {
-    console.log(element);
     var commend = arguments[1] +' '+ element;
     console.log(commend);
     exec(commend, (err, stdout, stderr) => {
