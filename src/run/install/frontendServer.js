@@ -90,7 +90,7 @@ export function installFrontendServer(homePath){
               ]),
           },
           {
-            title: `Removing ${chalk.blue('Installation files')}`,
+            title: `Removing Installation files`,
             enabled: () => true,
             task: () => {
               execao('rm', ['-rf', 'bug_analyis_front-end-0.0.9.tgz'], {

@@ -40,29 +40,47 @@ export async function createAnalysis(options) {
 
   let homePath = getHomePath();
 
-  try {
-    await access(`${homePath}/.bug-report`, fs.constants.R_OK);
-  } catch (err) {
+  // try {
+  //   await access(`${homePath}/.bug-report`, fs.constants.R_OK);
+  // } catch (err) {
+  //   dirPresence.frontendServer = false;
+  // }
+
+  access(`${homePath}/.bug-report`, fs.constants.R_OK).catch(()=>{
     dirPresence.frontendServer = false;
-  }
+  })
 
-  try {
-    await access(
-      `${homePath}/.vscode/extensions/codemap-extension`,
-      fs.constants.R_OK
-    );
-  } catch (err) {
+  // try {
+  //   await access(
+  //     `${homePath}/.vscode/extensions/codemap-extension`,
+  //     fs.constants.R_OK
+  //   );
+  // } catch (err) {
+  //   dirPresence.codemap = false;
+  // }
+
+  access(
+    `${homePath}/.vscode/extensions/codemap-extension`,
+    fs.constants.R_OK
+  ).catch(()=>{
     dirPresence.codemap = false;
-  }
+  })
 
-  try {
-    await access(
-      `${homePath}/.vscode/extensions/WebSVF-frontend-extension`,
-      fs.constants.R_OK
-    );
-  } catch (err) {
+  // try {
+  //   await access(
+  //     `${homePath}/.vscode/extensions/WebSVF-frontend-extension`,
+  //     fs.constants.R_OK
+  //   );
+  // } catch (err) {
+  //   dirPresence.frontend = false;
+  // }
+
+  access(
+    `${homePath}/.vscode/extensions/WebSVF-frontend-extension`,
+    fs.constants.R_OK
+  ).catch(()=>{
     dirPresence.frontend = false;
-  }
+  })
 
   try {
     await access(
