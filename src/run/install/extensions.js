@@ -157,7 +157,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
             },
           },
           {
-            title: `Removing ${chalk.blue('Extension files')}`,
+            title: `Removing Extension files`,
             enabled: () =>
               depInstall.vscode &&
               !dirPresence.frontend &&
