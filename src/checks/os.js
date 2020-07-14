@@ -27,7 +27,7 @@ const logMessage = async (os) => {
           throw new Error('Not Compatible');
         } else if (
           os.dist==="Ubuntu" &&
-          !(os.release.includes('18.04') || os.release.includes('20.04'))
+          !(Number(os.release)>=18.04)
         ) {
           console.error(
             `\n${chalk.red.bold(
