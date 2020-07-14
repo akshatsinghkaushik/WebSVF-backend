@@ -10,7 +10,7 @@ import getHomePath from 'home-path';
 import {
   scanbc,
   whichbc
-} from './helper/helperFunctions';
+} from './helper/functions';
 
 import {uninstallComponents} from './run/uninstall';
 
