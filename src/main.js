@@ -568,7 +568,7 @@ export async function createAnalysis(options) {
       task: () =>
         execao(
           'node',
-          [`${srcPath}generateJsonForSVFExample.js`, `${options.generateJSONDir}`, `${binPath}/svf-ex --leak`],
+          [`${srcPath}generateJSON.js`, `${options.generateJSONDir}`, `${binPath}/svf-ex --leak`],
           null,
           (result) => {console.log(result)}
         ),

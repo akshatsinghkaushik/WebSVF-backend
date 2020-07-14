@@ -1,10 +1,14 @@
+/*
+Move this script to the root path of SVF-example
+Run "node generateJsonForSVFExample.js project-path-to-be-analyzed" to create Bug-Analysis-Report.json
+Make sure you have genarate the bcfile in the folder before
+*/
 //Step 1: Init
 var fs = require('fs');
 var exec = require('child_process').exec;
 var path = require('path');
 var arguments = process.argv.splice(2);
-var projectPath = arguments[0] + "/";
-exec(". ./setup.sh");
+var projectPath = arguments[0] + "/"
 String.prototype.endWith = function(endStr) {
     var d = this.length-endStr.length;
     return (d >= 0 && this.lastIndexOf(endStr) == d);
@@ -18,7 +22,7 @@ class BugReport {
     }
 }
 
-//Step 2: Scan the target dir to get all .bc files.
+//Step 2: Scan the target dir to get all .bc files
 var bcFilesList = [];
 
 var filesList = [];
@@ -39,7 +43,8 @@ if (bcFilesList.length == 0) {
 //Step 3: Loop bcFilesList and generate bug reports
 bcFilesList.forEach(element => {
     console.log(element);
-    var commend = 'saber -leak -stat=false ' + element;
+    var commend = arguments[1] +' '+ element;
+    console.log(commend);
     exec(commend, (err, stdout, stderr) => {
         if (stderr != "" && !(stderr.indexOf("failed") != -1)) {
             analyzeData(stderr.toString());
@@ -49,6 +54,7 @@ bcFilesList.forEach(element => {
 
 //Functions used in process
 function analyzeData(output) {
+    console.log(output);
     var bugreports;
     var bugreportsArray = [];
     var errors = [];
@@ -137,12 +143,12 @@ function analyzePLError(partialLeak) {
     freePathArray.shift();
     var memoryAllocationString = getParenthesesStr(array_1[0]);
     var memoryAllocationLine = getContent(memoryAllocationString, "ln: ", " fl");
-    var memoryAllocationPath = getContent(memoryAllocationString, "fl: ", "");
+    var memoryAllocationPath = getContent(memoryAllocationString, "fl: ", " }");
     var stackTrace = [];
     var crossOrigin = [];
 
     freePathArray.forEach(element => {
-        var freePathName = getContent(element, "fl: ", ")");
+        var freePathName = getContent(element, "fl: ", " })");
         if (freePathName == memoryAllocationPath) {
             var freePathLine = getContent(element, "ln: ", " fl");
             var freePathEle = {
@@ -182,7 +188,7 @@ function analyzePLError(partialLeak) {
 
 function analyzeNFError(neverFree) {
     var neverFreeLine = getContent(neverFree, "ln: ", " fl");
-    var neverFreePath = getContent(neverFree, "fl: ", ")");
+    var neverFreePath = getContent(neverFree, "fl: ", " })");
     var error = {
         "ln": Number(neverFreeLine),
         "Type": "Semantic",
