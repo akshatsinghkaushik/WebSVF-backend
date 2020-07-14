@@ -34,10 +34,6 @@ sudo create-analysis -i
 
 To install WebSVF and all its dependencies
 
-##### **`-a user`** or **`--account user`** (Optional): 
-
-Where the `--account` flag indicates that a String is being provided which is the `user` for which WebSVF should be installed. If the user is not specified with the `--account` flag then the user is prompted with a list of users to select from.
-
 ### 2. Generate Analysis for LLVM Bitcode (.bc) file
 
 Generate the bitcode file for your program or project then run the following command from the same directory as the .bc file or specify the directory of the .bc file.

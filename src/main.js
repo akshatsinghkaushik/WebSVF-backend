@@ -5,7 +5,9 @@ import { promisify } from 'util';
 import execao from 'execa-output';
 import commandExists from 'command-exists';
 import fs from 'fs';
+import getHomePath from 'home-path';
 import { projectInstall } from 'pkg-install';
+
 import {
   scanbc,
   whichbc,
@@ -29,23 +31,26 @@ export async function createAnalysis(options) {
     frontend: true,
     frontendServer: true,
     extDir: true,
+    vscodeDir: true
   };
 
+  let homePath = getHomePath();
+
   try {
-    await access(`/home/${options.account}/.bug-report`, fs.constants.R_OK);
+    await access(`${homePath}/.bug-report`, fs.constants.R_OK);
   } catch (err) {
     dirPresence.frontendServer = false;
   }
 
   try {
-    await access(`/home/${options.account}`, fs.constants.W_OK);
+    await access(`${homePath}`, fs.constants.W_OK);
   } catch (err) {
     dirPresence.homeW = false;
   }
 
   try {
     await access(
-      `/home/${options.account}/.vscode/extensions/codemap-extension`,
+      `${homePath}/.vscode/extensions/codemap-extension`,
       fs.constants.R_OK
     );
   } catch (err) {
@@ -54,7 +59,7 @@ export async function createAnalysis(options) {
 
   try {
     await access(
-      `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension`,
+      `${homePath}/.vscode/extensions/WebSVF-frontend-extension`,
       fs.constants.R_OK
     );
   } catch (err) {
@@ -63,11 +68,20 @@ export async function createAnalysis(options) {
 
   try {
     await access(
-      `/home/${options.account}/.vscode/extensions`,
+      `${homePath}/.vscode/extensions`,
       fs.constants.R_OK
     );
   } catch (err) {
     dirPresence.extDir = false;
+  }
+
+  try {
+    await access(
+      `${homePath}/.vscode`,
+      fs.constants.R_OK
+    );
+  } catch (err) {
+    dirPresence.vscodeDir = false;
   }
 
   let currentFileUrl = import.meta.url;
@@ -269,7 +283,7 @@ export async function createAnalysis(options) {
               //skip: () => !options.runInstall,
               task: () =>
                 execao('mkdir', ['-m', 'a=rwx', '.bug-report'], {
-                  cwd: `/home/${options.account}`,
+                  cwd: `${homePath}/`,
                 }),
             },
             {
@@ -284,7 +298,7 @@ export async function createAnalysis(options) {
                   [
                     '-f',
                     `bug_analyis_front-end-0.0.9.tgz`,
-                    `/home/${options.account}/.bug-report/bug_analyis_front-end-0.0.9.tgz`,
+                    `${homePath}/.bug-report/bug_analyis_front-end-0.0.9.tgz`,
                   ],
                   null,
                   (result) => {
@@ -292,7 +306,7 @@ export async function createAnalysis(options) {
                       'tar',
                       ['-xzvf', 'bug_analyis_front-end-0.0.9.tgz'],
                       {
-                        cwd: `/home/${options.account}/.bug-report/`,
+                        cwd: `${homePath}/.bug-report/`,
                       },
                       (result) => {
                         execao(
@@ -310,7 +324,7 @@ export async function createAnalysis(options) {
                             ';',
                           ],
                           {
-                            cwd: `/home/${options.account}/.bug-report/`,
+                            cwd: `${homePath}/.bug-report/`,
                           }
                         );
                       }
@@ -326,7 +340,7 @@ export async function createAnalysis(options) {
               skip: () => !dirPresence.homeW,
               task: () =>
                 projectInstall({
-                  cwd: `/home/${options.account}/.bug-report/`,
+                  cwd: `${homePath}/.bug-report/`,
                 }),
             },
             {
@@ -337,7 +351,7 @@ export async function createAnalysis(options) {
                 execao('chmod', [
                   '-R',
                   'u=rwx,g=rwx,o=rwx',
-                  `/home/${options.account}/.bug-report/`,
+                  `${homePath}/.bug-report/`,
                 ]),
             },
             {
@@ -346,10 +360,10 @@ export async function createAnalysis(options) {
               skip: () => !options.runInstall,
               task: () => {
                 execao('rm', ['-rf', 'bug_analyis_front-end-0.0.9.tgz'], {
-                  cwd: `/home/${options.account}/.bug-report/`,
+                  cwd: `${homePath}/.bug-report/`,
                 });
                 execao('rm', ['-rf', 'package/'], {
-                  cwd: `/home/${options.account}/.bug-report/`,
+                  cwd: `${homePath}/.bug-report/`,
                 });
               },
             },
@@ -394,7 +408,7 @@ export async function createAnalysis(options) {
               //skip: () => !options.runInstall,
               task: () =>
                 execao('mkdir', ['-m', 'a=rwx', '.vscode'], {
-                  cwd: `/home/${options.account}`,
+                  cwd: `${homePath}/`,
                 }),
             },
             {
@@ -403,7 +417,7 @@ export async function createAnalysis(options) {
               //skip: () => !options.runInstall,
               task: () =>
                 execao('mkdir', ['-m', 'a=rwx', '-p', 'extensions'], {
-                  cwd: `/home/${options.account}/.vscode`,
+                  cwd: `${homePath}/.vscode`,
                 }),
             },
             {
@@ -414,7 +428,7 @@ export async function createAnalysis(options) {
                 execao('mv', [
                   '-f',
                   'WebSVF-frontend-extension_0.9.0.vsix',
-                  `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension_0.9.0.zip`,
+                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension_0.9.0.zip`,
                 ]),
             },
             {
@@ -425,7 +439,7 @@ export async function createAnalysis(options) {
                 execao('mv', [
                   '-f',
                   'codemap-extension-0.0.1.vsix',
-                  `/home/${options.account}/.vscode/extensions/codemap-extension-0.0.1.zip`,
+                  `${homePath}/.vscode/extensions/codemap-extension-0.0.1.zip`,
                 ]),
             },
             {
@@ -436,7 +450,7 @@ export async function createAnalysis(options) {
               skip: () => !options.runInstall,
               task: () =>
                 execao('mkdir', ['-m', 'a=rwx', 'codemap-extension-0.0.1'], {
-                  cwd: `/home/${options.account}/.vscode/extensions`,
+                  cwd: `${homePath}/.vscode/extensions`,
                 }),
             },
             {
@@ -450,7 +464,7 @@ export async function createAnalysis(options) {
                   'mkdir',
                   ['-m', 'a=rwx', 'WebSVF-frontend-extension_0.9.0'],
                   {
-                    cwd: `/home/${options.account}/.vscode/extensions`,
+                    cwd: `${homePath}/.vscode/extensions`,
                   }
                 ),
             },
@@ -464,10 +478,10 @@ export async function createAnalysis(options) {
                   [
                     'codemap-extension-0.0.1.zip',
                     '-d',
-                    `/home/${options.account}/.vscode/extensions/codemap-extension-0.0.1`,
+                    `${homePath}/.vscode/extensions/codemap-extension-0.0.1`,
                   ],
                   {
-                    cwd: `/home/${options.account}/.vscode/extensions`,
+                    cwd: `${homePath}/.vscode/extensions`,
                   }
                 ),
             },
@@ -481,10 +495,10 @@ export async function createAnalysis(options) {
                   [
                     'WebSVF-frontend-extension_0.9.0.zip',
                     '-d',
-                    `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension_0.9.0`,
+                    `${homePath}/.vscode/extensions/WebSVF-frontend-extension_0.9.0`,
                   ],
                   {
-                    cwd: `/home/${options.account}/.vscode/extensions`,
+                    cwd: `${homePath}/.vscode/extensions`,
                   }
                 ),
             },
@@ -495,8 +509,8 @@ export async function createAnalysis(options) {
               task: () =>
                 execao('mv', [
                   '-f',
-                  `/home/${options.account}/.vscode/extensions/codemap-extension-0.0.1/extension/`,
-                  `/home/${options.account}/.vscode/extensions/codemap-extension/`,
+                  `${homePath}/.vscode/extensions/codemap-extension-0.0.1/extension/`,
+                  `${homePath}/.vscode/extensions/codemap-extension/`,
                 ]),
             },
             {
@@ -506,8 +520,8 @@ export async function createAnalysis(options) {
               task: () =>
                 execao('mv', [
                   '-f',
-                  `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension_0.9.0/extension/`,
-                  `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension/`,
+                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension_0.9.0/extension/`,
+                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension/`,
                 ]),
             },
             {
@@ -521,12 +535,12 @@ export async function createAnalysis(options) {
                 execao('chmod', [
                   '-R',
                   'u=rwx,g=rwx,o=rwx',
-                  `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension/`,
+                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension/`,
                 ]);
                 execao('chmod', [
                   '-R',
                   'u=rwx,g=rwx,o=rwx',
-                  `/home/${options.account}/.vscode/extensions/codemap-extension/`,
+                  `${homePath}/.vscode/extensions/codemap-extension/`,
                 ]);
               },
             },
@@ -548,7 +562,7 @@ export async function createAnalysis(options) {
                     'codemap-extension-0.0.1/',
                   ],
                   {
-                    cwd: `/home/${options.account}/.vscode/extensions`,
+                    cwd: `${homePath}/.vscode/extensions`,
                   }
                 ),
             },
@@ -560,7 +574,7 @@ export async function createAnalysis(options) {
     {
       title: `Uninstalling ${chalk.inverse('WebSVF')}`,
       enabled: () => options.runUnInstall,
-      task: () => uninstallComponents(options, scriptsPath),
+      task: () => uninstallComponents(homePath),
     },
     {
       title: `Generating files for ${chalk.yellow.bold('WebSVF-frontend')}`,

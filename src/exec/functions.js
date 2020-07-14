@@ -15,7 +15,7 @@ String.prototype.endWith = function (endStr) {
   return d >= 0 && this.lastIndexOf(endStr) == d;
 };
 
-export function uninstallComponents(options, scriptsPath) {
+export function uninstallComponents(homePath) {
   return new Listr(
     [
       {
@@ -32,7 +32,22 @@ export function uninstallComponents(options, scriptsPath) {
               'WebSVF-frontend-extension_0.9.0/',
             ],
             {
-              cwd: `/home/${options.account}/.vscode/extensions`,
+              cwd: `${homePath}/.vscode/extensions`,
+            }
+          ),
+      },
+      {
+        title: `Removing ${chalk.blue('WebSVF-frontend-server')}`,
+        enabled: () => true,
+        task: () =>
+          execao(
+            'rm',
+            [
+              '-rf',
+              '.bug-report'
+            ],
+            {
+              cwd: `${homePath}/`,
             }
           ),
       }

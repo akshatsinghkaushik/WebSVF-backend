@@ -1,13 +1,11 @@
 import arg from 'arg';
 import inquirer from 'inquirer';
 import { createAnalysis } from './main';
-import execa from 'execa';
 import chalk from 'chalk';
 import { promisify } from 'util';
 import fs from 'fs';
 //import isElevated from 'is-elevated';
 
-import { mapExclude } from './exec/excludedUserNames';
 import { checkOS } from './checks/os';
 
 const access = promisify(fs.access);
@@ -18,10 +16,8 @@ function parseArgumentsIntoOptions(rawArgs) {
       '--yes': Boolean,
       '--install': Boolean,
       '--dir': String,
-      '--account': String,
       '--uninstall': Boolean,
       '-d': '--dir',
-      '-a': '--account',
       '-y': '--yes',
       '-i': '--install',
       '-u': '--uninstall',
@@ -34,7 +30,6 @@ function parseArgumentsIntoOptions(rawArgs) {
     //skipPrompts: args['--yes'] || false,
     template: args._[0],
     arguements: args._,
-    account: args['--account'] || false,
     generateJSONDir: args['--dir'] || process.cwd(),
     output: args['--output'] || '',
     runInstall: args['--install'] || false,
@@ -43,15 +38,8 @@ function parseArgumentsIntoOptions(rawArgs) {
 }
 
 async function promptForMissingOptions(options) {
-  const result = await execa('cut', ['-d:', '-f1', '/etc/passwd']);
 
-  const mapT = result.stdout
-    .split('\n')
-    .filter((item) => !mapExclude.has(item));
-
-  const defaultAccount = mapT[0];
-
-  //const isAdmin = await isElevated();
+  let questions = [];
 
   const dirPresence = {
     argsDir: true,
@@ -61,51 +49,6 @@ async function promptForMissingOptions(options) {
     await access(options.generateJSONDir, fs.constants.R_OK);
   } catch (err) {
     dirPresence.argsDir = false;
-  }
-
-  const questions = [];
-  if (!options.account && options.runInstallm && mapT.length !== 1) {
-    questions.push({
-      type: 'list',
-      name: 'account',
-      message: 'Please choose which user account to install WebSVF for:',
-      choices: mapT,
-      default: defaultAccount,
-    });
-  } else if (
-    mapT.indexOf(`${options.account}`) === -1 &&
-    options.runInstall &&
-    mapT.length !== 1
-  ) {
-    //console.log(`${options.account}`);
-    questions.push({
-      type: 'list',
-      name: 'account',
-      message: 'User does not Exist, Please select one of the user accounts:',
-      choices: mapT,
-      default: defaultAccount,
-    });
-  } else if (!options.account && options.runUnInstall && mapT.length !== 1) {
-    questions.push({
-      type: 'list',
-      name: 'account',
-      message: 'Please choose which user account to install WebSVF for:',
-      choices: mapT,
-      default: defaultAccount,
-    });
-  } else if (
-    mapT.indexOf(`${options.account}`) === -1 &&
-    options.runUnInstall &&
-    mapT.length !== 1
-  ) {
-    //console.log(`${options.account}`);
-    questions.push({
-      type: 'list',
-      name: 'account',
-      message: 'User does not Exist, Please select one of the user accounts:',
-      choices: mapT,
-      default: defaultAccount,
-    });
   }
 
   if (
@@ -130,7 +73,6 @@ async function promptForMissingOptions(options) {
   const answers = await inquirer.prompt(questions);
   return {
     ...options,
-    account: options.account || answers.account || defaultAccount,
     cancel: answers.cancel || false,
   };
 }
@@ -172,6 +114,4 @@ export async function cli(args) {
   } catch (err) {
     console.error(err);
   }
-
-  //console.log(options);
 }
