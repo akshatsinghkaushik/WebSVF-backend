@@ -2,14 +2,14 @@ import execao from 'execa-output';
 import Listr from 'listr';
 import chalk from 'chalk';
 
-export function installExtensions(homePath, depInstall, dirPresence){
+export function installExtensions(homePath, dirPresence){
     return new Listr(
         [
           {
             title: `Downloading ${chalk.inverse(
               'WebSVF-frontend-extension'
             )}`,
-            enabled: () => depInstall.vscode && !dirPresence.frontend,
+            enabled: () => !dirPresence.frontend,
             task: () =>
               execao('wget', [
                 '-c',
@@ -18,7 +18,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
           },
           {
             title: `Downloading ${chalk.inverse('WebSVF-codemap-extension')}`,
-            enabled: () => depInstall.vscode && !dirPresence.codemap,
+            enabled: () => !dirPresence.codemap,
             task: () =>
               execao('wget', [
                 '-c',
@@ -27,7 +27,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
           },
           {
             title: `Making directory ${chalk.blue('VSCode Extensions')}`,
-            enabled: () => !dirPresence.extDir,
+            enabled: () => !dirPresence.vscodeDir,
             task: () =>
               execao('mkdir', ['-m', 'a=rwx', '.vscode'], {
                 cwd: `${homePath}/`,
@@ -43,7 +43,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
           },
           {
             title: `Moving ${chalk.blue('WebSVF-frontend-extension')}`,
-            enabled: () => depInstall.vscode && !dirPresence.frontend,
+            enabled: () => !dirPresence.frontend,
             task: () =>
               execao('mv', [
                 '-f',
@@ -53,7 +53,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
           },
           {
             title: `Moving ${chalk.blue('WebSVF-codemap-extension')}`,
-            enabled: () => depInstall.vscode && !dirPresence.codemap,
+            enabled: () => !dirPresence.codemap,
             task: () =>
               execao('mv', [
                 '-f',
@@ -65,7 +65,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
             title: `Making directory ${chalk.blue(
               'WebSVF-codemap-extension'
             )}`,
-            enabled: () => depInstall.vscode && !dirPresence.codemap,
+            enabled: () => !dirPresence.codemap,
             task: () =>
               execao('mkdir', ['-m', 'a=rwx', 'codemap-extension-0.0.1'], {
                 cwd: `${homePath}/.vscode/extensions`,
@@ -75,7 +75,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
             title: `Making directory ${chalk.blue(
               'WebSVF-frontend-extension'
             )}`,
-            enabled: () => depInstall.vscode && !dirPresence.frontend,
+            enabled: () => !dirPresence.frontend,
             task: () =>
               execao(
                 'mkdir',
@@ -87,7 +87,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
           },
           {
             title: `Extracting ${chalk.blue('WebSVF-codemap-extension')}`,
-            enabled: () => depInstall.vscode && !dirPresence.codemap,
+            enabled: () => !dirPresence.codemap,
             task: () =>
               execao(
                 'unzip',
@@ -103,7 +103,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
           },
           {
             title: `Extracting ${chalk.blue('WebSVF-frontend-extension')}`,
-            enabled: () => depInstall.vscode && !dirPresence.frontend,
+            enabled: () => !dirPresence.frontend,
             task: () =>
               execao(
                 'unzip',
@@ -119,7 +119,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
           },
           {
             title: `Extracting ${chalk.blue('WebSVF-codemap-extension')}`,
-            enabled: () => depInstall.vscode && !dirPresence.codemap,
+            enabled: () => !dirPresence.codemap,
             task: () =>
               execao('mv', [
                 '-f',
@@ -129,7 +129,7 @@ export function installExtensions(homePath, depInstall, dirPresence){
           },
           {
             title: `Extracting ${chalk.blue('WebSVF-frontend-extension')}`,
-            enabled: () => depInstall.vscode && !dirPresence.frontend,
+            enabled: () => !dirPresence.frontend,
             task: () =>
               execao('mv', [
                 '-f',
@@ -140,7 +140,6 @@ export function installExtensions(homePath, depInstall, dirPresence){
           {
             title: `Allowing ${chalk.blue('access to extensions')}`,
             enabled: () =>
-              depInstall.vscode &&
               !dirPresence.frontend &&
               !dirPresence.codemap,
             task: () => {
@@ -159,7 +158,6 @@ export function installExtensions(homePath, depInstall, dirPresence){
           {
             title: `Removing Extension files`,
             enabled: () =>
-              depInstall.vscode &&
               !dirPresence.frontend &&
               !dirPresence.codemap,
             task: () =>

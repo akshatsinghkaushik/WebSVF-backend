@@ -64,7 +64,7 @@ export async function checkOS(options) {
 
           resolve({
             ...options,
-            check: true,
+            checkOS: true,
           });
         })
         .catch((error) => {
