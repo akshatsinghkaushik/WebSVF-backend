@@ -4,7 +4,7 @@ import { createAnalysis, runInstall, runUninstall, runEnvSetup, runEnvReset } fr
 import chalk from 'chalk';
 import { promisify } from 'util';
 import fs from 'fs';
-//import isElevated from 'is-elevated';
+import isElevated from 'is-elevated';
 
 import { checkOS } from './checks/os';
 
@@ -133,22 +133,34 @@ export async function cli(args) {
       
       //Run Different Listr (npm package) tasks based on the user's specified cli arguements (as stored in the options object)
       if(options.runInstall){
-        await runInstall();
+        if(await isElevated()){
+          await runInstall();
+        }
+        else{
+          console.log(`${chalk.red('ERROR: ')}Elevated priviledges required to perform the operation`);
+          throw Error('Operation Failed');
+        }
       }
       else if(options.runUnInstall){
         await runUninstall();
       }
       else if(options.runEnvSetup){
-        //if(await isElevated()){
+        if(await isElevated()){
           await runEnvSetup();
-        // }
-        // else{
-        //   console.log(`${chalk.red('WARNING: ')}Elevated priviledges required to refresh PATH variables, installation will fail at the last step`);
-        //   await runEnvSetup();
-        // }
+        }
+        else{
+          console.log(`${chalk.red('ERROR: ')}Elevated priviledges required to perform the operation`);
+          throw Error('Operation Failed');
+        }
       }
       else if(options.runEnvReset){
+        if(await isElevated()){
           await runEnvReset();
+        }
+        else{
+          console.log(`${chalk.red('ERROR: ')}Elevated priviledges required to perform the operation`);
+          throw Error('Operation Failed');
+        }
       }
       else{
         await createAnalysis(options);

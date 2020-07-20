@@ -439,8 +439,8 @@ export async function runEnvSetup(){
             title: `Installing WLLVM`,
             enabled: () => dirPresence.llvmUnpack,
             task: () => execao(
-              'sudo',
-              ['pip','install', 'wllvm'])
+              'pip',
+              ['install', 'wllvm'])
           },
           {
             title: `Refresh PATH with updated ${chalk.inverse('LLVM_DIR')} and ${chalk.inverse('LLVM_COMPILER')} variables`,
