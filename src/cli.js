@@ -19,6 +19,7 @@ function parseArgumentsIntoOptions(rawArgs) {
       '--dir': String,
       '--setup-env': Boolean,
       '--reset-env': Boolean,
+      '--setup-eg': Boolean,
       '-i': '--install',
       '-u': '--uninstall',
       '-d': '--dir',
@@ -37,6 +38,7 @@ function parseArgumentsIntoOptions(rawArgs) {
     runUnInstall: args['--uninstall'] || false,
     runEnvSetup: args['--setup-env'] || false,
     runEnvReset: args['--reset-env'] || false,
+    runEgSetup: args['--setup-eg'] || false,
   };
 }
 

@@ -450,7 +450,7 @@ export async function runEnvSetup(){
               ['updateLLVMPath.sh', `${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`],
               {
                 cwd: `${scriptsPath}/`,
-              }),
+              },()=>{console.log(`${chalk.green('SUCCESS: ')} Please RESTART your system for changes to take effect`)}),
           },
         ],{ concurrent: false })
 
