@@ -20,6 +20,12 @@ export async function depInstallDesktop(depInstall){
             skip: () => depInstall.unzip,
             task: () => execao('sudo', ['apt', 'install', '-y', 'unzip']),
           },
+          {
+            title: `Installing ${chalk.inverse('wget')}`,
+            enabled: () => true,
+            skip: () => depInstall.wget,
+            task: () => execao('sudo', ['apt', 'install', '-y', 'wget']),
+          },
         ],
         { concurrent: false }
       );

@@ -79,6 +79,16 @@ export async function checkDependencies(depInstall){
                   depInstall.unzip = true;
                 })
                 .catch(() => {}),
+          },
+          {
+            title: `Checking ${chalk.inverse('wget')} Installation`,
+            enabled: () => true,
+            task: () =>
+              commandExists('wget')
+                .then(() => {
+                  depInstall.wget = true;
+                })
+                .catch(() => {}),
           }
         ],
         { concurrent: true }

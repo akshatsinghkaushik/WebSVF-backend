@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 import Listr from 'listr';
 import path from 'path';
-import { promisify } from 'util';
 import execao from 'execa-output';
+import { promisify } from 'util';
 import fs from 'fs';
 import getHomePath from 'home-path';
 
@@ -80,7 +80,8 @@ export async function runInstall(){
     vscode: false,
     node: false,
     nodeVers: false,
-    unzip: false
+    unzip: false,
+    wget: false
   };
 
   let dirPresence = {
@@ -104,10 +105,11 @@ export async function runInstall(){
       enabled: () => true,
       skip: () => {
         if (
-          depInstall.vscode === true &&
-          depInstall.node === true &&
-          depInstall.nodeVers === true &&
-          depInstall.unzip === true
+          depInstall.vscode &&
+          depInstall.node &&
+          depInstall.nodeVers &&
+          depInstall.unzip &&
+          depInstall.wget
         ) {
           return 'Dependencies already installed';
         }
@@ -140,7 +142,7 @@ export async function runInstall(){
   }
 }
 
-export async function runUninstall(options){
+export async function runUninstall(){
 
   //Variable storing the path to the current user's Home Directory (uses the npm package home-path for cross-platform support)
   const homePath = getHomePath();
@@ -161,6 +163,312 @@ export async function runUninstall(options){
   }
 }
 
+export async function runEnvReset(){
+
+  let homePath = getHomePath();
+
+  let currentFileUrl = import.meta.url;
+
+  let rootPath =
+    '/' +
+    path.join(
+      decodeURI(
+        new URL(currentFileUrl).pathname.substring(
+          new URL(currentFileUrl).pathname.indexOf('/') + 1
+        )
+      ),
+      '../../'
+    );
+
+  let scriptsPath = `${rootPath}scripts/`;
+  
+  let dirPresence = {
+    llvmDir: true,
+    llvm10Dir: true,
+    llvmDL: false,
+    llvmUnpack: true,
+    llvmInstall: true
+  }
+
+  await access(`${homePath}/llvm-clang/`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvmDir = false;
+  });
+
+  await access(`${homePath}/llvm-clang/10`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvm10Dir = false;
+  });
+
+  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvmUnpack = false;
+  });
+
+  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/llvm-c-test`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvmInstall = false;
+  });
+
+  const envResetTasks = new Listr([
+    {
+      title: `Resetting Environment `,
+      enabled: () => true,
+      task: () => {
+
+        const tasks = new Listr ([
+          { 
+            title: `Removing LLVM files`,
+            enabled: () => true,
+            task: () => execao(
+              'rm',
+              [
+                '-rf',
+                'llvm-clang/'
+              ],
+              {
+                cwd: `${homePath}/`,
+              }
+            ),
+          },
+          {
+            title: `Refresh PATH`,
+            enabled: () =>true,
+            task: () => execao(
+              'sh',
+              ['removeLLVMPath.sh'],
+              {
+                cwd: `${scriptsPath}/`,
+              }),
+          },
+        ],{ concurrent: false })
+
+        return tasks;
+      },
+    },
+  ]);
+
+
+
+  //Run the list of Installation tasks defined above
+  try {
+    await envResetTasks.run();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function runEnvSetup(){
+
+  let homePath = getHomePath();
+
+  let currentFileUrl = import.meta.url;
+
+  let rootPath =
+    '/' +
+    path.join(
+      decodeURI(
+        new URL(currentFileUrl).pathname.substring(
+          new URL(currentFileUrl).pathname.indexOf('/') + 1
+        )
+      ),
+      '../../'
+    );
+
+  let binPath = `${rootPath}bin/`;
+  let scriptsPath = `${rootPath}scripts/`;
+  
+  let dirPresence = {
+    llvmDir: true,
+    llvm10Dir: true,
+    llvmDL: false,
+    llvmUnpack: true,
+    llvmInstall: true
+  }
+
+  //A JavaScript object containing boolean values representing whether a particular dependency is installed or not
+  let depInstall = {
+    vscode: false,
+    node: false,
+    nodeVers: false,
+    unzip: false,
+    wget: false
+  };
+
+  await access(`${homePath}/llvm-clang/`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvmDir = false;
+  });
+
+  await access(`${homePath}/llvm-clang/10`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvm10Dir = false;
+  });
+
+  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvmUnpack = false;
+  });
+
+  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/llvm-c-test`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvmInstall = false;
+  });
+
+  const envSetupTasks = new Listr([
+    {
+      title: `Setting up Environment `,
+      enabled: () => true,
+      task: () => {
+
+        const tasks = new Listr ([
+          {
+            title: 'Checking Dependency Installations',
+            enabled: () => true,
+            task: () => checkDependencies(depInstall)
+          },
+          {
+            title: `Create llvm-clang directory`,
+            enabled: () => !dirPresence.llvmDir,
+            task: () => {
+
+              execao('mkdir', ['-m', 'a=rwx', 'llvm-clang'], {
+                cwd: `${homePath}/`,
+              });
+
+              execao('mkdir', ['-m', 'a=rwx', '10'], {
+                cwd: `${homePath}/llvm-clang/`,
+              });
+
+              dirPresence.llvmDir = true;
+              dirPresence.llvm10Dir = true;
+            },
+          },
+          {
+            title: `Create llvm-clang/10 directory`,
+            enabled: () => !dirPresence.llvm10Dir,
+            task: () => {
+              execao('mkdir', ['-m', 'a=rwx', '10'], {
+                cwd: `${homePath}/llvm-clang/`,
+              });
+
+              dirPresence.llvm10Dir = true;
+          }
+          },
+          {
+            title: `Downloading ${chalk.blue(
+              'LLVM-Clang 10.0'
+            )} binary`,
+            enabled: () => (dirPresence.llvmDir && dirPresence.llvm10Dir) && !dirPresence.llvmUnpack,
+            task: () => 
+              execao(
+                'wget',
+                [
+                  '-c',
+                  'https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
+                ],
+                {
+                  cwd: `${homePath}/llvm-clang/10/`,
+                }, () =>{
+                  dirPresence.llvmDL = true;
+                }
+              ),
+          },
+          {
+            title: `Unpacking ${chalk.inverse.blue(
+              'LLVM-Clang 10.0'
+            )} binary`,
+            enabled: () => dirPresence.llvmDL,
+            task: () =>
+               new Listr([
+                { 
+                  title: `Removing incomplete extraction`,
+                  enabled: () => dirPresence.llvmUnpack,
+                  task: () => execao(
+                    'rm',
+                    [
+                      '-rf',
+                      'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/'
+                    ],
+                    {
+                      cwd: `${homePath}/llvm-clang/10/`,
+                    },
+                    (result) => {
+                      dirPresence.llvmUnpack = false;
+                    }
+                  ),
+                },
+                { 
+                  title: `Unpacking files`,
+                  enabled: () => true,
+                  task: () => execao(
+                    'tar',
+                    [
+                      '-xvf',
+                      'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
+                      '-C',
+                      `${homePath}/llvm-clang/10/`,
+                    ],
+                    {
+                      cwd: `${homePath}/llvm-clang/10/`,
+                    },
+                    (result) => {
+                      dirPresence.llvmUnpack = true;
+                    }
+                  ),
+                },
+                { 
+                  title: `Removing Downloaded LLVM-10 Binary`,
+                  enabled: () => true,
+                  task: () => execao(
+                    'rm',
+                    [
+                      '-rf',
+                      'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz'
+                    ],
+                    {
+                      cwd: `${homePath}/llvm-clang/10/`,
+                    },
+                    (result) => {
+                      dirPresence.llvmDL = false;
+                    }
+                  ),
+                },
+              ],{concurrent: false})
+          },
+          {
+            title: `Installing Python to Install WLLVM`,
+            enabled: () => dirPresence.llvmUnpack,
+            task: () => execao(
+              'sudo',
+              ['apt-get','install', `-y`, 'python3-pip', 'python-pip'])
+          },
+          {
+            title: `Installing WLLVM`,
+            enabled: () => dirPresence.llvmUnpack,
+            task: () => execao(
+              'sudo',
+              ['pip','install', 'wllvm'])
+          },
+          {
+            title: `Refresh PATH with updated ${chalk.inverse('LLVM_DIR')} and ${chalk.inverse('LLVM_COMPILER')} variables`,
+            enabled: () => dirPresence.llvmUnpack,
+            task: () => execao(
+              'sh',
+              ['updateLLVMPath.sh', `${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`],
+              {
+                cwd: `${scriptsPath}/`,
+              }),
+          },
+        ],{ concurrent: false })
+
+        return tasks;
+      },
+    },
+  ]);
+
+
+
+  //Run the list of Installation tasks defined above
+  try {
+    await envSetupTasks.run();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 export async function createAnalysis(options) {
 
   //Variable storing the path to the current user's Home Directory (uses the npm package home-path for cross-platform support)
@@ -171,7 +479,8 @@ export async function createAnalysis(options) {
     vscode: false,
     node: false,
     nodeVers: false,
-    unzip: false
+    unzip: false,
+    wget: false
   };
 
   //A JavaScript object containing boolean values representing whether a particular dependency is installed or not 
@@ -209,6 +518,19 @@ export async function createAnalysis(options) {
       title: 'Checking Dependency Installations',
       enabled: () => !options.runUnInstall,
       task: () => checkDependencies(depInstall)
+    },
+    {
+      title: 'Installing Dependencies',
+      enabled: () => true,
+      skip: () => {
+        if (
+          depInstall.node &&
+          depInstall.nodeVers
+        ) {
+          return 'Dependencies already installed';
+        }
+      },
+      task: () => {}
     },
     {
       title: `Generating files for ${chalk.yellow.bold('WebSVF-frontend')}`,

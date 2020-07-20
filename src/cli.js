@@ -1,6 +1,6 @@
 import arg from 'arg';
 import inquirer from 'inquirer';
-import { createAnalysis, runInstall, runUninstall } from './main';
+import { createAnalysis, runInstall, runUninstall, runEnvSetup, runEnvReset } from './main';
 import chalk from 'chalk';
 import { promisify } from 'util';
 import fs from 'fs';
@@ -14,14 +14,14 @@ const access = promisify(fs.access);
 function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(
     {
-      '--yes': Boolean,
       '--install': Boolean,
-      '--dir': String,
       '--uninstall': Boolean,
-      '-d': '--dir',
-      '-y': '--yes',
+      '--dir': String,
+      '--setup-env': Boolean,
+      '--reset-env': Boolean,
       '-i': '--install',
       '-u': '--uninstall',
+      '-d': '--dir',
     },
     {
       argv: rawArgs.slice(2),
@@ -35,6 +35,8 @@ function parseArgumentsIntoOptions(rawArgs) {
     output: args['--output'] || '',
     runInstall: args['--install'] || false,
     runUnInstall: args['--uninstall'] || false,
+    runEnvSetup: args['--setup-env'] || false,
+    runEnvReset: args['--reset-env'] || false,
   };
 }
 
@@ -114,6 +116,8 @@ export async function cli(args) {
     //Proceed with further operations if OS Check is successful
     if (options.checkOS) {
 
+      //Offer options on options chaining or 
+
       //If the directory was specified check directory existence on system
       if(options.generateJSONDir){
         //Prompts the user with an option if they enter a wrong directory to run analysis in
@@ -133,6 +137,18 @@ export async function cli(args) {
       }
       else if(options.runUnInstall){
         await runUninstall();
+      }
+      else if(options.runEnvSetup){
+        //if(await isElevated()){
+          await runEnvSetup();
+        // }
+        // else{
+        //   console.log(`${chalk.red('WARNING: ')}Elevated priviledges required to refresh PATH variables, installation will fail at the last step`);
+        //   await runEnvSetup();
+        // }
+      }
+      else if(options.runEnvReset){
+          await runEnvReset();
       }
       else{
         await createAnalysis(options);
