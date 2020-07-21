@@ -1,6 +1,6 @@
 {
   "name": "@websvf/create-analysis",
-  "version": "0.1.13",
+  "version": "0.0.1917",
   "description": "A CLI to bootstrap my new projects",
   "main": "src/index.js",
   "bin": {
@@ -33,7 +33,6 @@
     "execa": "^4.0.2",
     "execa-output": "^2.0.0",
     "getos": "^3.2.1",
-    "home-path": "^1.0.7",
     "inquirer": "^7.3.0",
     "is-elevated": "^3.0.0",
     "listr": "^0.14.3",

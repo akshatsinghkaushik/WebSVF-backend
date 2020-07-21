@@ -1,704 +1,121 @@
 import chalk from 'chalk';
 import Listr from 'listr';
 import path from 'path';
-import getos from 'getos';
-import execao from 'execa-output';
 import { promisify } from 'util';
+import execao from 'execa-output';
+import commandExists from 'command-exists';
 import fs from 'fs';
-import getHomePath from 'home-path';
-
-import {checkDependencies} from './checks/dependencies';
-
+import { projectInstall } from 'pkg-install';
 import {
+  createSVFToolsDirectory,
+  installDependencies,
+  installSVFEssentialTools,
+  installSVFDependencies,
+  updatePackages,
   scanbc,
-  whichbc
-} from './helper/functions';
-
-import {uninstallComponents} from './run/uninstall';
-
-import {installFrontendServer} from './run/install/frontendServer';
-
-import {installExtensions} from './run/install/extensions';
-
-import {depInstallDesktop} from './run/install/dependencies/dekstop';
-
-import {prepCodemap} from './run/prep/codemap';
-
-import {generateJSON} from './run/prep/frontend';
+  whichbc,
+} from './exec/functions';
 
 const access = promisify(fs.access);
-const getOS = promisify(getos);
-
-//Function that checks for the presence of installation directories of required WebSVF components and dependencies 
-async function checkDirPresence(dirPresence, homePath){
-
-  //Check if the Installation directory for the WebSVF-frontend-server exists (~/.bug-report/)
-  await access(`${homePath}/.bug-report`, fs.constants.R_OK).catch(()=>{
-    dirPresence.frontendServer = false;
-  });
-
-  //Check if the VSCode home directory exists (~/.vscode)
-  await access(
-    `${homePath}/.vscode`,
-    fs.constants.R_OK
-  ).catch(()=>{
-    dirPresence.vscodeDir = false;
-  });
-
-  //Check if the VSCode extensions directory exists (~/.vscode/extensions)
-  await access(
-    `${homePath}/.vscode/extensions`,
-    fs.constants.R_OK
-  ).catch(()=>{
-    dirPresence.extDir = false;
-  });
-
-  //Check if the Installation directory for the WebSVF-codemap-extension exists (~/.vscode/extensions/codemap-extension)
-  await access(
-    `${homePath}/.vscode/extensions/codemap-extension`,
-    fs.constants.R_OK
-  ).catch(()=>{
-    dirPresence.codemap = false;
-  });
-
-  //Check if the Installation directory for the WebSVF-frontend-extension exists (~/.vscode/extensions/WebSVF-frontend-extension)
-  await access(
-    `${homePath}/.vscode/extensions/WebSVF-frontend-extension`,
-    fs.constants.R_OK
-  ).catch(()=>{
-    dirPresence.frontend = false;
-  });
-
-  return dirPresence;
-}
-
-export async function runInstall(){
-
-  //Variable storing the path to the current user's Home Directory (uses the npm package home-path for cross-platform support)
-  const homePath = getHomePath();
-
-  //A JavaScript object containing boolean values representing whether a particular depndency is installed or not
-  let depInstall = {
-    vscode: false,
-    node: false,
-    nodeVers: false,
-    unzip: false,
-    wget: false
-  };
-
-  let dirPresence = {
-    codemap: true,
-    frontend: true,
-    frontendServer: true,
-    extDir: true,
-    vscodeDir: true
-  };
-
-  dirPresence = await checkDirPresence(dirPresence, homePath);
-
-  const installTasks = new Listr([
-    {
-      title: 'Checking Dependency Installations',
-      enabled: () => true,
-      task: () => checkDependencies(depInstall)
-    },
-    {
-      title: 'Installing Dependencies',
-      enabled: () => true,
-      skip: () => {
-        if (
-          depInstall.vscode &&
-          depInstall.node &&
-          depInstall.nodeVers &&
-          depInstall.unzip &&
-          depInstall.wget
-        ) {
-          return 'Dependencies already installed';
-        }
-      },
-      task: () => depInstallDesktop(depInstall)
-    },
-    {
-      title: `Installing ${chalk.inverse('WebSVF frontend-server')}`,
-      enabled: () => true,
-      skip: () => dirPresence.frontendServer,
-      task: () => installFrontendServer(homePath)
-    },
-    {
-      title: `Installing ${chalk.inverse('WebSVF Extensions')}`,
-      enabled: () => true,
-      skip: () => {
-        if(dirPresence.frontend && dirPresence.codemap){
-          return "Extensions already installed"
-        }
-      },
-      task: () => installExtensions(homePath, dirPresence)
-    }
-  ]);
-
-  //Run the list of Installation tasks defined above
-  try {
-    await installTasks.run();
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-export async function runUninstall(){
-
-  //Variable storing the path to the current user's Home Directory (uses the npm package home-path for cross-platform support)
-  const homePath = getHomePath();
-
-  const unInstallTasks = new Listr([
-    {
-      title: `Uninstalling ${chalk.inverse('WebSVF')}`,
-      enabled: () => true,
-      task: () => uninstallComponents(homePath),
-    },
-  ]);
-
-  //Run the list of Installation tasks defined above
-  try {
-    await unInstallTasks.run();
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-export async function runEnvReset(){
-
-  let homePath = getHomePath();
-
-  let currentFileUrl = import.meta.url;
-
-  let rootPath =
-    '/' +
-    path.join(
-      decodeURI(
-        new URL(currentFileUrl).pathname.substring(
-          new URL(currentFileUrl).pathname.indexOf('/') + 1
-        )
-      ),
-      '../../'
-    );
-
-  let scriptsPath = `${rootPath}scripts/`;
-  
-  let dirPresence = {
-    llvmDir: true,
-    llvm10Dir: true,
-    llvmDL: false,
-    llvmUnpack: true,
-    llvmInstall: true
-  }
-
-  await access(`${homePath}/llvm-clang/`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvmDir = false;
-  });
-
-  await access(`${homePath}/llvm-clang/10`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvm10Dir = false;
-  });
-
-  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvmUnpack = false;
-  });
-
-  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/llvm-c-test`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvmInstall = false;
-  });
-
-  const envResetTasks = new Listr([
-    {
-      title: `Resetting Environment `,
-      enabled: () => true,
-      task: () => {
-
-        const tasks = new Listr ([
-          { 
-            title: `Removing LLVM files`,
-            enabled: () => true,
-            task: () => execao(
-              'rm',
-              [
-                '-rf',
-                'llvm-clang/'
-              ],
-              {
-                cwd: `${homePath}/`,
-              }
-            ),
-          },
-          {
-            title: `Refresh PATH`,
-            enabled: () =>true,
-            task: () => execao(
-              'sh',
-              ['removeLLVMPath.sh'],
-              {
-                cwd: `${scriptsPath}/`,
-              }),
-          },
-        ],{ concurrent: false })
-
-        return tasks;
-      },
-    },
-  ]);
-
-
-
-  //Run the list of Installation tasks defined above
-  try {
-    await envResetTasks.run();
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-export async function runEnvSetup(){
-
-  let homePath = getHomePath();
-
-  let currentFileUrl = import.meta.url;
-
-  let rootPath =
-    '/' +
-    path.join(
-      decodeURI(
-        new URL(currentFileUrl).pathname.substring(
-          new URL(currentFileUrl).pathname.indexOf('/') + 1
-        )
-      ),
-      '../../'
-    );
-
-  let binPath = `${rootPath}bin/`;
-  let scriptsPath = `${rootPath}scripts/`;
-  
-  let dirPresence = {
-    llvmDir: true,
-    llvm10Dir: true,
-    llvmDL: false,
-    llvmUnpack: true,
-    llvmInstall: true
-  }
-
-  //A JavaScript object containing boolean values representing whether a particular dependency is installed or not
-  let depInstall = {
-    vscode: false,
-    node: false,
-    nodeVers: false,
-    unzip: false,
-    wget: false
-  };
-
-  await access(`${homePath}/llvm-clang/`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvmDir = false;
-  });
-
-  await access(`${homePath}/llvm-clang/10`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvm10Dir = false;
-  });
-
-  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvmUnpack = false;
-  });
-
-  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/llvm-c-test`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvmInstall = false;
-  });
-
-  const envSetupTasks = new Listr([
-    {
-      title: `Setting up Environment `,
-      enabled: () => true,
-      task: () => new Listr ([
-          {
-            title: 'Checking Dependency Installations',
-            enabled: () => true,
-            task: () => checkDependencies(depInstall)
-          },
-          {
-            title: 'Installing Dependencies',
-            enabled: () => true,
-            skip: () => {
-              if (
-                depInstall.vscode &&
-                depInstall.node &&
-                depInstall.nodeVers &&
-                depInstall.unzip &&
-                depInstall.wget
-              ) {
-                return 'Dependencies already installed';
-              }
-            },
-            task: () => depInstallDesktop(depInstall)
-          },
-          {
-            title: `Create llvm-clang directory`,
-            enabled: () => !dirPresence.llvmDir,
-            task: () => {
-
-              execao('mkdir', ['-m', 'a=rwx', 'llvm-clang'], {
-                cwd: `${homePath}/`,
-              });
-
-              execao('mkdir', ['-m', 'a=rwx', '10'], {
-                cwd: `${homePath}/llvm-clang/`,
-              });
-
-              dirPresence.llvmDir = true;
-              dirPresence.llvm10Dir = true;
-            },
-          },
-          {
-            title: `Create llvm-clang/10 directory`,
-            enabled: () => !dirPresence.llvm10Dir,
-            task: () => {
-              execao('mkdir', ['-m', 'a=rwx', '10'], {
-                cwd: `${homePath}/llvm-clang/`,
-              });
-
-              dirPresence.llvm10Dir = true;
-          }
-          },
-          {
-            title: `Downloading ${chalk.blue(
-              'LLVM-Clang 10.0'
-            )} binary`,
-            enabled: () => (dirPresence.llvmDir && dirPresence.llvm10Dir) && !dirPresence.llvmUnpack,
-            task: () => 
-              execao(
-                'wget',
-                [
-                  '-c',
-                  'https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
-                ],
-                {
-                  cwd: `${homePath}/llvm-clang/10/`,
-                }, () =>{
-                  dirPresence.llvmDL = true;
-                }
-              ),
-          },
-          {
-            title: `Unpacking ${chalk.inverse.blue(
-              'LLVM-Clang 10.0'
-            )} binary`,
-            enabled: () => dirPresence.llvmDL,
-            task: () =>
-               new Listr([
-                { 
-                  title: `Removing incomplete extraction`,
-                  enabled: () => dirPresence.llvmUnpack,
-                  task: () => execao(
-                    'rm',
-                    [
-                      '-rf',
-                      'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/'
-                    ],
-                    {
-                      cwd: `${homePath}/llvm-clang/10/`,
-                    },
-                    (result) => {
-                      dirPresence.llvmUnpack = false;
-                    }
-                  ),
-                },
-                { 
-                  title: `Unpacking files`,
-                  enabled: () => true,
-                  task: () => execao(
-                    'tar',
-                    [
-                      '-xvf',
-                      'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
-                      '-C',
-                      `${homePath}/llvm-clang/10/`,
-                    ],
-                    {
-                      cwd: `${homePath}/llvm-clang/10/`,
-                    },
-                    (result) => {
-                      dirPresence.llvmUnpack = true;
-                    }
-                  ),
-                },
-                { 
-                  title: `Removing Downloaded LLVM-10 Binary`,
-                  enabled: () => true,
-                  task: () => execao(
-                    'rm',
-                    [
-                      '-rf',
-                      'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz'
-                    ],
-                    {
-                      cwd: `${homePath}/llvm-clang/10/`,
-                    },
-                    (result) => {
-                      dirPresence.llvmDL = false;
-                    }
-                  ),
-                },
-              ],{concurrent: false})
-          },
-          {
-            title: `Installing Python to Install WLLVM`,
-            enabled: () => dirPresence.llvmUnpack,
-            task: () => {
-              getOS()
-                .then((os) => {
-                  if((Number(os.release)===18.04)){
-                    execao(
-                    'sudo',
-                    ['apt-get','install', `-y`, 'python-pip']);
-                  }else if ((Number(os.release)===20.04)){
-                    execao(
-                      'sudo',
-                      ['apt-get','install', `-y`, 'python3-pip']);
-                  }
-                })
-                .catch((error) => {
-                  throw Error(error);
-                });
-            }
-          },
-          {
-            title: `Installing WLLVM`,
-            enabled: () => dirPresence.llvmUnpack,
-            task: () => {
-              getOS()
-              .then((os) => {
-                if((Number(os.release)===18.04)){
-                  execao(
-                    'pip',
-                    ['install', 'wllvm']);
-                }else if ((Number(os.release)===20.04)){
-                  console.log("Reached");
-                  execao(
-                    'pip3',
-                    ['install', 'wllvm']);
-                }
-              })
-              .catch((error) => {
-                throw Error(error);
-              });
-              
-            }
-          },
-          {
-            title: `Refresh PATH with updated ${chalk.inverse('LLVM_DIR')} and ${chalk.inverse('LLVM_COMPILER')} variables`,
-            enabled: () => dirPresence.llvmUnpack,
-            task: () => execao(
-              'sh',
-              ['updateLLVMPath.sh', `${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`],
-              {
-                cwd: `${scriptsPath}/`,
-              },()=>{console.log(`${chalk.green('SUCCESS: ')} Please RESTART your system for changes to take effect`)}),
-          },
-        ],{ concurrent: false })
-    },
-  ]);
-
-
-
-  //Run the list of Installation tasks defined above
-  try {
-    await envSetupTasks.run();
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-export async function runEgSetup(){
-
-  let homePath = getHomePath();
-
-  let currentFileUrl = import.meta.url;
-
-  let rootPath =
-    '/' +
-    path.join(
-      decodeURI(
-        new URL(currentFileUrl).pathname.substring(
-          new URL(currentFileUrl).pathname.indexOf('/') + 1
-        )
-      ),
-      '../../'
-    );
-
-  let binPath = `${rootPath}bin/`;
-  let scriptsPath = `${rootPath}scripts/`;
-
-  let dirPresence = {
-    llvmDir: true,
-    llvm10Dir: true,
-    llvmDL: false,
-    llvmUnpack: true,
-    llvmInstall: true,
-    demoProgZip: true,
-    demoProgDir: true,
-  }
-
-  //A JavaScript object containing boolean values representing whether a particular dependency is installed or not
-  let depInstall = {
-    vscode: false,
-    node: false,
-    nodeVers: false,
-    unzip: false,
-    wget: false
-  };
-
-  await access(`${process.cwd()}/pkg-config-0.26.tar.gz`, fs.constants.R_OK).catch(()=>{
-    dirPresence.demoProgZip = false;
-  });
-
-  await access(`${process.cwd()}/pkg-config-0.26/`, fs.constants.R_OK).catch(()=>{
-    dirPresence.demoProgDir = false;
-  });
-
-  await access(`${homePath}/llvm-clang/`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvmDir = false;
-  });
-
-  await access(`${homePath}/llvm-clang/10`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvm10Dir = false;
-  });
-
-  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvmUnpack = false;
-  });
-
-  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/llvm-c-test`, fs.constants.R_OK).catch(()=>{
-    dirPresence.llvmInstall = false;
-  });
-
-  const egSetupTasks = new Listr([
-    {
-      title: `Setting up WebSVF Example (Demo) `,
-      enabled: () => true,
-      task: () => new Listr ([
-          {
-            title: 'Checking Dependency Installations',
-            enabled: () => true,
-            task: () => checkDependencies(depInstall)
-          },
-          {
-            title: 'Checking Environment',
-            enabled: () => true,
-            task: () => {
-              if(!dirPresence.llvmInstall){
-                console.error(chalk.red(`Please Run the command ${chalk.white.inverse('sudo create-analysis --setup-env')} followed by a system restart then run the operation again`));
-                throw Error('Operation Failed')
-              }
-            }
-          },
-          {
-            title: 'Installing Dependencies',
-            enabled: () => true,
-            task: () => execao(
-              'sudo',
-              ['apt', 'install', '-y', 'libglib2.0-dev', 'libncurses5', 'libtool'])
-          },
-          {
-            title: 'Downloading Demo Program',
-            enabled: () => !dirPresence.demoProgDir,
-            task: () => execao(
-              'wget',
-              ['-c', 'https://pkgconfig.freedesktop.org/releases/pkg-config-0.26.tar.gz'],{
-                cwd: `${process.cwd()}`,
-              }, ()=>{
-                dirPresence.demoProgZip = true;
-              })
-          },
-          {
-            title: 'Extracting Demo Program',
-            enabled: () => dirPresence.demoProgZip && !dirPresence.demoProgDir,
-            task: () => execao(
-              'tar',
-              ['xf', 'pkg-config-0.26.tar.gz'],{
-                cwd: `${process.cwd()}`,
-              }, ()=>{
-                execao(
-                  'rm',
-                  ['-rf', 'pkg-config-0.26.tar.gz'],{
-                    cwd: `${process.cwd()}`,
-                  });
-
-                  dirPresence.demoProgZip = false;
-                  dirPresence.demoProgDir = true;
-              })
-          },
-          {
-            title: 'Build Demo Program',
-            enabled: () => true,
-            task: () => execao(
-              'sh',
-              ['setupEg.sh', `${process.cwd()}/pkg-config-0.26/`],{
-                cwd: `${scriptsPath}`,
-              },(result)=>{})
-          },
-          {
-            title: 'Generate LLVM Bitcode (.bc) for the Demo Program',
-            enabled: () => true,
-            task: () => execao(
-              'extract-bc',
-              ['pkg-config', '-o', 'pkg-config.bc'],{
-                cwd: `${process.cwd()}/pkg-config-0.26/`,
-              })
-          },
-          {
-            title: `Generating files for ${chalk.yellow.bold('WebSVF-frontend')}`,
-            enabled: () => true,
-            task: () => generateJSON(`${process.cwd()}/pkg-config-0.26/`,`${binPath}/svf-ex --leak`)
-          },
-          
-        ],{ concurrent: false })
-    },
-  ]);
-
-
-
-  //Run the list of Installation tasks defined above
-  try {
-    await egSetupTasks.run();
-  } catch (e) {
-    console.error(e);
-  }
-}
 
 export async function createAnalysis(options) {
-
-  //Variable storing the path to the current user's Home Directory (uses the npm package home-path for cross-platform support)
-  const homePath = getHomePath();
-
-  //A JavaScript object containing boolean values representing whether a particular dependency is installed or not
-  let depInstall = {
+  //A JavaScript object containing boolean values representing whether a particular depndency is installed or not
+  const depInstall = {
     vscode: false,
     node: false,
     nodeVers: false,
-    unzip: false,
-    wget: false
+    npm: false,
+    git: false,
+    svf: false,
   };
 
-  //A JavaScript object containing boolean values representing whether a particular dependency is installed or not 
-  //(Initialized as true instead of false)
-  let dirPresence = {
+  const dirPresence = {
+    svfToolsR: true,
+    homeW: true,
+    svfR: true,
+    llvmclangUnpack: true,
+    llvmclang: true,
     codemap: true,
     frontend: true,
     frontendServer: true,
     extDir: true,
-    vscodeDir: true
   };
 
-  //The checkDirPresence function is executed to check the existence of various directory and the result is stored in the dirPresence object
-  dirPresence = await checkDirPresence(dirPresence, homePath);
+  try {
+    await access(`/home/${options.account}/.bug-report`, fs.constants.R_OK);
+  } catch (err) {
+    dirPresence.frontendServer = false;
+  }
+
+  try {
+    await access(`/home/${options.account}/SVFTools`, fs.constants.R_OK);
+  } catch (err) {
+    dirPresence.svfToolsR = false;
+  }
+
+  try {
+    await access(`/home/${options.account}/SVFTools/SVF`, fs.constants.R_OK);
+  } catch (err) {
+    dirPresence.svfR = false;
+  }
+
+  try {
+    await access(
+      `/home/${options.account}/SVFTools/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`,
+      fs.constants.R_OK
+    );
+  } catch (err) {
+    dirPresence.llvmclangUnpack = false;
+  }
+
+  try {
+    await access(
+      `/home/${options.account}/SVFTools/clang-llvm`,
+      fs.constants.R_OK
+    );
+  } catch (err) {
+    dirPresence.llvmclang = false;
+  }
+
+  try {
+    await access(`/home/${options.account}`, fs.constants.W_OK);
+  } catch (err) {
+    dirPresence.homeW = false;
+  }
+
+  try {
+    await access(
+      `/home/${options.account}/.vscode/extensions/codemap-extension`,
+      fs.constants.R_OK
+    );
+  } catch (err) {
+    dirPresence.codemap = false;
+  }
+
+  try {
+    await access(
+      `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension`,
+      fs.constants.R_OK
+    );
+  } catch (err) {
+    dirPresence.frontend = false;
+  }
+
+  try {
+    await access(
+      `/home/${options.account}/.vscode/extensions`,
+      fs.constants.R_OK
+    );
+  } catch (err) {
+    dirPresence.extDir = false;
+  }
+
+  if (dirPresence.llvmclang && dirPresence.svfR) {
+    depInstall.svf = true;
+  }
 
   let currentFileUrl = import.meta.url;
-
-  let rootPath =
+  let scriptsPath =
     '/' +
     path.join(
       decodeURI(
@@ -706,49 +123,908 @@ export async function createAnalysis(options) {
           new URL(currentFileUrl).pathname.indexOf('/') + 1
         )
       ),
-      '../../'
+      '../../scripts'
     );
 
-  let binPath = `${rootPath}bin/`;
-  let scriptsPath = `${rootPath}scripts/`;
+  let srcPath =
+    '/' +
+    path.join(
+      decodeURI(
+        new URL(currentFileUrl).pathname.substring(
+          new URL(currentFileUrl).pathname.indexOf('/') + 1
+        )
+      ),
+      '../'
+    );
 
   //Define the list of tasks to run using the listr node module
   const tasks = new Listr([
     {
       title: 'Checking Dependency Installations',
       enabled: () => !options.runUnInstall,
-      task: () => checkDependencies(depInstall)
+      task: () => {
+        return new Listr(
+          [
+            {
+              title: `Checking ${chalk.inverse('NPM')} Installation`,
+              enabled: () => true,
+              task: () =>
+                commandExists('npm')
+                  .then(() => {
+                    depInstall.npm = true;
+                  })
+                  .catch(() => {
+                    console.error(
+                      `${chalk.inverse(
+                        `${chalk.blue.bold(
+                          'npm'
+                        )} command not found${'\n'.repeat(
+                          2
+                        )} Please install ${chalk.blue.bold(
+                          'NodeJS'
+                        )} version ${chalk.yellow.bold('>=10')} ${'\n'.repeat(
+                          2
+                        )} Then Run the command ${chalk.green.italic(
+                          'sudo create-analysis'
+                        )} again to finish setting up`
+                      )}`
+                    );
+                    process.exit(1);
+                  }),
+            },
+            {
+              title: `Checking ${chalk.inverse('NodeJS')} Installation`,
+              enabled: () => true,
+              task: () =>
+                commandExists('node')
+                  .then(() => {
+                    depInstall.node = true;
+                  })
+                  .catch(() => {
+                    console.error(
+                      `${chalk.inverse(
+                        `${chalk.blue.bold(
+                          'node'
+                        )} command not found${'\n'.repeat(
+                          2
+                        )} Please install ${chalk.blue.bold(
+                          'NodeJS'
+                        )} version ${chalk.yellow.bold('>=10')} ${'\n'.repeat(
+                          2
+                        )} Then Run the command ${chalk.green.italic(
+                          'sudo create-analysis'
+                        )} again to finish setting up`
+                      )}`
+                    );
+                    process.exit(1);
+                  }),
+            },
+            {
+              title: `Checking ${chalk.inverse('NodeJS')} Version`,
+              enabled: () => true,
+              task: () => {
+                const version = process.version;
+                if (parseFloat(version.substr(1, version.length)) >= 10) {
+                  depInstall.nodeVers = true;
+                } else {
+                  console.error(
+                    `${chalk.inverse(
+                      `The current version of node ${chalk.blue.bold(
+                        version
+                      )} is outdated${'\n'.repeat(
+                        2
+                      )}Please Update node to version ${chalk.yellow.bold(
+                        '>=10'
+                      )} ${'\n'.repeat(
+                        2
+                      )} Then Run the command ${chalk.green.italic(
+                        'sudo create-analysis'
+                      )} again to finish setting up`
+                    )}`
+                  );
+                  process.exit(1);
+                }
+              },
+            },
+            {
+              title: `Checking ${chalk.inverse('VSCode')} Installation`,
+              enabled: () => true,
+              task: () =>
+                commandExists('code')
+                  .then(() => {
+                    depInstall.vscode = true;
+                  })
+                  .catch(() => {}),
+            },
+            {
+              title: `Checking ${chalk.inverse('Git')} Installation`,
+              enabled: () => true,
+              task: () =>
+                commandExists('git')
+                  .then(() => {
+                    depInstall.git = true;
+                  })
+                  .catch(() => {}),
+            },
+          ],
+          { concurrent: false }
+        );
+      },
     },
     {
       title: 'Installing Dependencies',
-      enabled: () => true,
+      enabled: () => options.runInstall,
       skip: () => {
         if (
-          depInstall.node &&
-          depInstall.nodeVers
+          depInstall.vscode === true &&
+          depInstall.npm === true &&
+          depInstall.node === true &&
+          depInstall.git === true &&
+          depInstall.nodeVers === true
         ) {
-          return 'Dependencies already installed';
+          return true;
         }
       },
-      task: () => {}
+      task: () => {
+        return new Listr(
+          [
+            {
+              title: `Installing ${chalk.inverse(
+                'VSCode'
+              )} (using snap package manager)`,
+              enabled: () => true,
+              skip: () => depInstall.vscode,
+              task: () =>
+                execao('snap', ['install', 'code', '--classic'], null, () => {
+                  depInstall.vscode = true;
+                }),
+            },
+            {
+              title: `Installing ${chalk.inverse('Git')}`,
+              enabled: () => true,
+              skip: () => depInstall.git,
+              task: () =>
+                installDependencies('git')
+                  .then(() => {
+                    depInstall.git = true;
+                  })
+                  .catch((e) => {
+                    console.error(
+                      `${chalk.inverse(
+                        `Something went wrong installing ${chalk.red.bold(
+                          'Git'
+                        )}${'\n'.repeat(
+                          2
+                        )} Please Run the command ${chalk.green.italic(
+                          'sudo create-analysis --install'
+                        )} again to finish setting up  ${'\n'.repeat(
+                          2
+                        )} The Error Log from the failed installation:`
+                      )}`
+                    );
+                    console.error(e);
+                    process.exit(1);
+                  }),
+            },
+            {
+              title: `Installing ${chalk.inverse('Unzip')}`,
+              enabled: () => true,
+              //skip: () => depInstall.git,
+              task: () => execao('sudo', ['apt', 'install', '-y', 'unzip']),
+            },
+          ],
+          { concurrent: false }
+        );
+      },
     },
     {
-      title: `Generating files for ${chalk.yellow.bold('WebSVF-frontend')}`,
-      enabled: () => true,
-      task: () => generateJSON(`${options.generateJSONDir}`,`${binPath}/svf-ex --leak`)
+      title: `Installing ${chalk.inverse('WebSVF frontend-server')}`,
+      enabled: () => !dirPresence.frontendServer && options.runInstall,
+      //skip: () => !options.runInstall,
+      task: () => {
+        return new Listr(
+          [
+            {
+              title: `Downloading ${chalk.inverse('WebSVF-frontend-server')}`,
+              enabled: () => true,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao('wget', [
+                  '-c',
+                  'https://github.com/SVF-tools/WebSVF/releases/download/0.1.0/bug_analyis_front-end-0.0.9.tgz',
+                ]),
+            },
+            {
+              title: `Making directory ${chalk.blue('.bug-report')}`,
+              enabled: () => true,
+              //skip: () => !options.runInstall,
+              task: () =>
+                execao('mkdir', ['-m', 'a=rwx', '.bug-report'], {
+                  cwd: `/home/${options.account}`,
+                }),
+            },
+            {
+              title: `Unpacking ${chalk.inverse.blue(
+                'WebSVF-frontend-server'
+              )} files`,
+              enabled: () => true,
+              skip: () => !dirPresence.homeW,
+              task: () =>
+                execao(
+                  'mv',
+                  [
+                    '-f',
+                    `bug_analyis_front-end-0.0.9.tgz`,
+                    `/home/${options.account}/.bug-report/bug_analyis_front-end-0.0.9.tgz`,
+                  ],
+                  null,
+                  (result) => {
+                    execao(
+                      'tar',
+                      ['-xzvf', 'bug_analyis_front-end-0.0.9.tgz'],
+                      {
+                        cwd: `/home/${options.account}/.bug-report/`,
+                      },
+                      (result) => {
+                        execao(
+                          'find',
+                          [
+                            'package',
+                            '-maxdepth',
+                            '1',
+                            '-mindepth',
+                            '1',
+                            '-exec',
+                            'mv',
+                            '{}',
+                            '.',
+                            ';',
+                          ],
+                          {
+                            cwd: `/home/${options.account}/.bug-report/`,
+                          }
+                        );
+                      }
+                    );
+                  }
+                ),
+            },
+            {
+              title: `Installing ${chalk.inverse.blue(
+                'WebSVF-frontend-server'
+              )}`,
+              enabled: () => true,
+              skip: () => !dirPresence.homeW,
+              task: () =>
+                projectInstall({
+                  cwd: `/home/${options.account}/.bug-report/`,
+                }),
+            },
+            {
+              title: `Allowing ${chalk.blue('access')}`,
+              enabled: () => true,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao('chmod', [
+                  '-R',
+                  'u=rwx,g=rwx,o=rwx',
+                  `/home/${options.account}/.bug-report/`,
+                ]),
+            },
+            {
+              title: `Removing ${chalk.blue('Installation files')}`,
+              enabled: () => true,
+              skip: () => !options.runInstall,
+              task: () => {
+                execao('rm', ['-rf', 'bug_analyis_front-end-0.0.9.tgz'], {
+                  cwd: `/home/${options.account}/.bug-report/`,
+                });
+                execao('rm', ['-rf', 'package/'], {
+                  cwd: `/home/${options.account}/.bug-report/`,
+                });
+              },
+            },
+          ],
+          { concurrent: false }
+        );
+      },
     },
     {
-      title: `Generating files ${chalk.yellow.bold(
-        'WebSVF-codemap-extension'
-      )}`,
-      enabled: () => false, //!options.runInstall && !options.runUnInstall,
-      task: () => prepCodemap(whichbc(scanbc(`${options.generateJSONDir}`)), options, scriptsPath)
-      // {
-      //   var bcFilesList = scanbc(`${options.generateJSONDir}`);
-      //   var select = whichbc(bcFilesList);
+      title: `Installing ${chalk.inverse('WebSVF Extensions')}`,
+      enabled: () =>
+        depInstall.vscode && !dirPresence.frontend && options.runInstall,
+      //skip: () => !options.runInstall,
+      task: () => {
+        return new Listr(
+          [
+            {
+              title: `Downloading ${chalk.inverse(
+                'WebSVF-frontend-extension'
+              )}`,
+              enabled: () => depInstall.vscode && !dirPresence.frontend,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao('wget', [
+                  '-c',
+                  'https://github.com/SVF-tools/WebSVF/releases/download/0.9.0/WebSVF-frontend-extension_0.9.0.vsix',
+                ]),
+            },
+            {
+              title: `Downloading ${chalk.inverse('WebSVF-codemap-extension')}`,
+              enabled: () => depInstall.vscode && !dirPresence.codemap,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao('wget', [
+                  '-c',
+                  'https://github.com/SVF-tools/WebSVF/releases/download/0.0.1/codemap-extension-0.0.1.vsix',
+                ]),
+            },
+            {
+              title: `Making directory ${chalk.blue('VSCode Extensions')}`,
+              enabled: () => !dirPresence.extDir,
+              //skip: () => !options.runInstall,
+              task: () =>
+                execao('mkdir', ['-m', 'a=rwx', '.vscode'], {
+                  cwd: `/home/${options.account}`,
+                }),
+            },
+            {
+              title: `Making directory ${chalk.blue('VSCode Extensions')}`,
+              enabled: () => !dirPresence.extDir,
+              //skip: () => !options.runInstall,
+              task: () =>
+                execao('mkdir', ['-m', 'a=rwx', '-p', 'extensions'], {
+                  cwd: `/home/${options.account}/.vscode`,
+                }),
+            },
+            {
+              title: `Moving ${chalk.blue('WebSVF-frontend-extension')}`,
+              enabled: () => depInstall.vscode && !dirPresence.frontend,
+              //skip: () => !options.runInstall,
+              task: () =>
+                execao('mv', [
+                  '-f',
+                  'WebSVF-frontend-extension_0.9.0.vsix',
+                  `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension_0.9.0.zip`,
+                ]),
+            },
+            {
+              title: `Moving ${chalk.blue('WebSVF-codemap-extension')}`,
+              enabled: () => depInstall.vscode && !dirPresence.codemap,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao('mv', [
+                  '-f',
+                  'codemap-extension-0.0.1.vsix',
+                  `/home/${options.account}/.vscode/extensions/codemap-extension-0.0.1.zip`,
+                ]),
+            },
+            {
+              title: `Making directory ${chalk.blue(
+                'WebSVF-codemap-extension'
+              )}`,
+              enabled: () => depInstall.vscode && !dirPresence.codemap,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao('mkdir', ['-m', 'a=rwx', 'codemap-extension-0.0.1'], {
+                  cwd: `/home/${options.account}/.vscode/extensions`,
+                }),
+            },
+            {
+              title: `Making directory ${chalk.blue(
+                'WebSVF-frontend-extension'
+              )}`,
+              enabled: () => depInstall.vscode && !dirPresence.frontend,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao(
+                  'mkdir',
+                  ['-m', 'a=rwx', 'WebSVF-frontend-extension_0.9.0'],
+                  {
+                    cwd: `/home/${options.account}/.vscode/extensions`,
+                  }
+                ),
+            },
+            {
+              title: `Extracting ${chalk.blue('WebSVF-codemap-extension')}`,
+              enabled: () => depInstall.vscode && !dirPresence.codemap,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao(
+                  'unzip',
+                  [
+                    'codemap-extension-0.0.1.zip',
+                    '-d',
+                    `/home/${options.account}/.vscode/extensions/codemap-extension-0.0.1`,
+                  ],
+                  {
+                    cwd: `/home/${options.account}/.vscode/extensions`,
+                  }
+                ),
+            },
+            {
+              title: `Extracting ${chalk.blue('WebSVF-frontend-extension')}`,
+              enabled: () => depInstall.vscode && !dirPresence.frontend,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao(
+                  'unzip',
+                  [
+                    'WebSVF-frontend-extension_0.9.0.zip',
+                    '-d',
+                    `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension_0.9.0`,
+                  ],
+                  {
+                    cwd: `/home/${options.account}/.vscode/extensions`,
+                  }
+                ),
+            },
+            {
+              title: `Extracting ${chalk.blue('WebSVF-codemap-extension')}`,
+              enabled: () => depInstall.vscode && !dirPresence.codemap,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao('mv', [
+                  '-f',
+                  `/home/${options.account}/.vscode/extensions/codemap-extension-0.0.1/extension/`,
+                  `/home/${options.account}/.vscode/extensions/codemap-extension/`,
+                ]),
+            },
+            {
+              title: `Extracting ${chalk.blue('WebSVF-frontend-extension')}`,
+              enabled: () => depInstall.vscode && !dirPresence.frontend,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao('mv', [
+                  '-f',
+                  `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension_0.9.0/extension/`,
+                  `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension/`,
+                ]),
+            },
+            {
+              title: `Allowing ${chalk.blue('access to extensions')}`,
+              enabled: () =>
+                depInstall.vscode &&
+                !dirPresence.frontend &&
+                !dirPresence.codemap,
+              skip: () => !options.runInstall,
+              task: () => {
+                execao('chmod', [
+                  '-R',
+                  'u=rwx,g=rwx,o=rwx',
+                  `/home/${options.account}/.vscode/extensions/WebSVF-frontend-extension/`,
+                ]);
+                execao('chmod', [
+                  '-R',
+                  'u=rwx,g=rwx,o=rwx',
+                  `/home/${options.account}/.vscode/extensions/codemap-extension/`,
+                ]);
+              },
+            },
+            {
+              title: `Removing ${chalk.blue('Extension files')}`,
+              enabled: () =>
+                depInstall.vscode &&
+                !dirPresence.frontend &&
+                !dirPresence.codemap,
+              skip: () => !options.runInstall,
+              task: () =>
+                execao(
+                  'rm',
+                  [
+                    '-rf',
+                    'WebSVF-frontend-extension_0.9.0.zip',
+                    'codemap-extension-0.0.1.zip',
+                    'WebSVF-frontend-extension_0.9.0/',
+                    'codemap-extension-0.0.1/',
+                  ],
+                  {
+                    cwd: `/home/${options.account}/.vscode/extensions`,
+                  }
+                ),
+            },
+          ],
+          { concurrent: false }
+        );
+      },
+    },
+    {
+      title: `Installing ${chalk.inverse('SVF')}`,
+      enabled: () => options.runInstall,
+      skip: () => depInstall.svf,
+      task: () => {
+        return new Listr(
+          [
+            {
+              title: `Installing ${chalk.inverse(
+                chalk.blue('SVF Dependencies')
+              )}`,
+              enabled: () => true,
+              task: () => {
+                return new Listr(
+                  [
+                    {
+                      title: `Updating ${chalk.blue('Ubuntu Packages')}`,
+                      enabled: () => true,
+                      task: () =>
+                        updatePackages()
+                          .then(() => {})
+                          .catch((e) => {
+                            console.error(
+                              `${chalk.inverse(
+                                `Something went wrong updating ${chalk.red.bold(
+                                  'Ubuntu Packages'
+                                )}${'\n'.repeat(
+                                  2
+                                )} Please Run the command ${chalk.green.italic(
+                                  'sudo create-analysis'
+                                )} again to finish setting up  ${'\n'.repeat(
+                                  2
+                                )} The Error Log from the failed installation:`
+                              )}`
+                            );
+                            console.error(e);
+                            process.exit(1);
+                          }),
+                    },
+                    {
+                      title: `Installing ${chalk.blue(
+                        'Essential Tools'
+                      )}\n\t  ${chalk.yellow('Please wait...')}`,
+                      enabled: () => true,
+                      task: () =>
+                        installSVFEssentialTools()
+                          .then(() => {})
+                          .catch((e) => {
+                            console.error(
+                              `${chalk.inverse(
+                                `Something went wrong installing ${chalk.red.bold(
+                                  'Essential Tools for SVF Installation'
+                                )}${'\n'.repeat(
+                                  2
+                                )} Please Run the command ${chalk.green.italic(
+                                  'sudo create-analysis'
+                                )} again to finish setting up  ${'\n'.repeat(
+                                  2
+                                )} The Error Log from the failed installation:`
+                              )}`
+                            );
+                            console.error(e);
+                            process.exit(1);
+                          }),
+                    },
+                    {
+                      title: `Installing ${chalk.blue('WLLVM and pygraphviz')}`,
+                      enabled: () => true,
+                      task: () =>
+                        installSVFDependencies()
+                          .then(() => {})
+                          .catch((e) => {
+                            console.error(
+                              `${chalk.inverse(
+                                `Something went wrong installing ${chalk.red.bold(
+                                  'WLLVM and pygraphviz'
+                                )}${'\n'.repeat(
+                                  2
+                                )} Please Run the command ${chalk.green.italic(
+                                  'sudo create-analysis'
+                                )} again to finish setting up  ${'\n'.repeat(
+                                  2
+                                )} The Error Log from the failed installation:`
+                              )}`
+                            );
+                            console.error(e);
+                            process.exit(1);
+                          }),
+                    },
+                  ],
+                  { concurrent: false }
+                );
+              },
+            },
+            {
+              title: `Creating ${chalk.inverse.blue('SVF-Tools')} directory`,
+              enabled: () => !dirPresence.svfToolsR,
+              skip: () => !dirPresence.homeW,
+              task: () =>
+                createSVFToolsDirectory(options.account)
+                  .then(() => {})
+                  .catch((e) => {
+                    console.error(
+                      `${chalk.inverse(
+                        `Something went wrong creating ${chalk.red.bold(
+                          'SVF-Tools'
+                        )} directory${'\n'.repeat(
+                          2
+                        )} Please Run the command ${chalk.green.italic(
+                          'sudo create-analysis'
+                        )} again to finish setting up  ${'\n'.repeat(
+                          2
+                        )} The Error Log from the failed installation:`
+                      )}`
+                    );
+                    console.error(e);
+                    process.exit(1);
+                  }),
+            },
+            {
+              title: `Downloading ${chalk.inverse.blue(
+                'LLVM-Clang 10.0'
+              )} binary`,
+              enabled: () =>
+                !dirPresence.llvmclangUnpack && !dirPresence.llvmclang,
+              skip: () => !dirPresence.homeW,
+              task: () =>
+                execao(
+                  'wget',
+                  [
+                    '-c',
+                    'https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
+                  ],
+                  {
+                    cwd: `/home/${options.account}/SVFTools/`,
+                  }
+                ),
+            },
+            {
+              title: `Downloading ${chalk.inverse.blue('SVF')} binary`,
+              enabled: () => !dirPresence.svfR,
+              skip: () => !dirPresence.homeW,
+              task: () =>
+                execao(
+                  'wget',
+                  [
+                    '-c',
+                    'https://github.com/SVF-tools/WebSVF/releases/download/1.0/SVF.tar.xz',
+                  ],
+                  {
+                    cwd: `/home/${options.account}/SVFTools/`,
+                  }
+                ),
+            },
+            {
+              title: `Unpacking ${chalk.inverse.blue(
+                'LLVM-Clang 10.0'
+              )} binary`,
+              enabled: () =>
+                !dirPresence.llvmclangUnpack && !dirPresence.llvmclang,
+              skip: () => !dirPresence.homeW,
+              task: () =>
+                execao(
+                  'tar',
+                  [
+                    '-xvf',
+                    'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
+                    '-C',
+                    `/home/${options.account}/SVFTools/`,
+                  ],
+                  {
+                    cwd: `/home/${options.account}/SVFTools/`,
+                  },
+                  (result) => {
+                    dirPresence.llvmclangUnpack = true;
+                  }
+                ),
+            },
+            {
+              title: `Renaming ${chalk.inverse.blue('LLVM-Clang')} directory`,
+              enabled: () =>
+                !dirPresence.llvmclang && dirPresence.llvmclangUnpack,
+              skip: () => !dirPresence.homeW,
+              task: () =>
+                execao(
+                  'mv',
+                  [
+                    `/home/${options.account}/SVFTools/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`,
+                    `/home/${options.account}/SVFTools/clang-llvm`,
+                  ],
+                  {
+                    cwd: `/home/${options.account}/SVFTools/`,
+                  },
+                  (result) => {
+                    dirPresence.llvmclang = true;
+                  }
+                ),
+            },
+            {
+              title: `Unpacking ${chalk.inverse.blue('SVF')} binary`,
+              enabled: () => !dirPresence.svfR,
+              skip: () => !dirPresence.homeW,
+              task: () =>
+                execao(
+                  'tar',
+                  [
+                    '-xvf',
+                    'SVF.tar.xz',
+                    '-C',
+                    `/home/${options.account}/SVFTools/`,
+                  ],
+                  {
+                    cwd: `/home/${options.account}/SVFTools/`,
+                  },
+                  (result) => {
+                    dirPresence.svfR = true;
+                  }
+                ),
+            },
+            {
+              title: `Setting PATHs for ${chalk.inverse.blue(
+                'LLVM, Clang & SVF'
+              )}`,
+              enabled: () => true,
+              task: () =>
+                execao(
+                  'cp',
+                  ['-f', 'setupSVF.sh', `/home/${options.account}/SVFTools/`],
+                  {
+                    cwd: scriptsPath,
+                  },
+                  (result) => {
+                    fs.readFile(
+                      `/home/${options.account}/SVFTools/setupSVF.sh`,
+                      (err, data) => {
+                        if (err) {
+                          throw err;
+                        }
+                        const dataSplit = data
+                          .toString()
+                          .replace(
+                            '#########',
+                            `########\nINSTALL_DIR="/home/${options.account}/SVFTools"`
+                          )
+                          .replace(/\r\n/gm, '\n');
 
-        
-      // },
+                        fs.writeFile(
+                          `/home/${options.account}/SVFTools/setupSVF.sh`,
+                          `${dataSplit}`,
+                          (err) => {
+                            if (err) throw err;
+
+                            execao(
+                              'sh',
+                              ['setupSVF.sh'],
+                              {
+                                cwd: `/home/${options.account}/SVFTools/`,
+                              },
+                              (result) => {
+                                console.error(
+                                  `${chalk.inverse.green(
+                                    'SUCCESS'
+                                  )}: Please RESTART your system to finish Installation`
+                                );
+                                execao(
+                                  'rm',
+                                  [
+                                    '-rf',
+                                    'clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz',
+                                    `SVF.tar.xz`,
+                                    'setupSVF.sh',
+                                  ],
+                                  {
+                                    cwd: `/home/${options.account}/SVFTools/`,
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                ),
+            },
+          ],
+          { concurrent: false }
+        );
+      },
+    },
+    {
+      title: `Uninstalling ${chalk.inverse('WebSVF')}`,
+      enabled: () => options.runUnInstall,
+      skip: () => !depInstall.svf,
+      task: () => {
+        return new Listr(
+          [
+            {
+              title: `Removing ${chalk.blue('Extension files')}`,
+              enabled: () => true,
+              task: () =>
+                execao(
+                  'rm',
+                  [
+                    '-rf',
+                    'WebSVF-frontend-extension',
+                    'codemap-extension',
+                    'codemap-extension-0.0.1/',
+                    'WebSVF-frontend-extension_0.9.0/',
+                  ],
+                  {
+                    cwd: `/home/${options.account}/.vscode/extensions`,
+                  }
+                ),
+            },
+            {
+              title: `Removing ${chalk.inverse.blue('LLVM, Clang & SVF')}`,
+              enabled: () => true,
+              task: () =>
+                execao(
+                  'cp',
+                  ['-f', 'removeSVF.sh', `/home/${options.account}/SVFTools/`],
+                  {
+                    cwd: scriptsPath,
+                  },
+                  (result) => {
+                    fs.readFile(
+                      `/home/${options.account}/SVFTools/removeSVF.sh`,
+                      (err, data) => {
+                        if (err) {
+                          throw err;
+                        }
+                        const dataSplit = data
+                          .toString()
+                          .replace(
+                            '#########',
+                            `########\nINSTALL_DIR="/home/${options.account}/SVFTools"`
+                          )
+                          .replace(/\r\n/gm, '\n');
+
+                        fs.writeFile(
+                          `/home/${options.account}/SVFTools/removeSVF.sh`,
+                          `${dataSplit}`,
+                          (err) => {
+                            if (err) throw err;
+
+                            execao(
+                              'sh',
+                              ['removeSVF.sh'],
+                              {
+                                cwd: `/home/${options.account}/SVFTools/`,
+                              },
+                              (result) => {
+                                console.error(
+                                  `${chalk.inverse.green(
+                                    'SUCCESS'
+                                  )}: WebSVF Uninstalled`
+                                );
+                                execao(
+                                  'rm',
+                                  ['-rf', 'SVFTools', '.bug-report'],
+                                  {
+                                    cwd: `/home/${options.account}`,
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                ),
+            },
+          ],
+          { concurrent: false }
+        );
+      },
+    },
+    {
+      title: `Generating ${chalk.yellow.bold('Bug-Report-Analysis.json')}`,
+      enabled: () => !options.runInstall && !options.runUnInstall,
+      //skip: () => depInstall.svf,
+      task: () =>
+        execao(
+          'node',
+          [`${srcPath}generateJSON.js`, `${options.generateJSONDir}`],
+          null,
+          () => {}
+        ),
+
+      // Running generate JSON through execa.node (instead of execao):
+
+      // generateJSON(srcPath, options.generateJSONDir).then(()=>depInstall.svf = true).catch((e)=>{
+      //   console.error(`${chalk.inverse(`Something went wrong generating ${chalk.red.bold('Bug-Report-Analysis.json')}${'\n'.repeat(2)} Please Run the command ${chalk.green.italic('sudo create-analysis')} again to finish setting up  ${'\n'.repeat(2)} The Error Log from the failed installation:`)}`);
+      //   console.error(e);
+      // })
     },
   ]);
 
@@ -758,4 +1034,79 @@ export async function createAnalysis(options) {
   } catch (e) {
     console.error(e);
   }
+
+  if (!options.runInstall && !options.runUnInstall) {
+    var bcFilesList = scanbc(`${options.generateJSONDir}`);
+    var select = await whichbc(bcFilesList);
+
+    const tasks1 = new Listr([
+      {
+        title: `Moving Files for ${chalk.yellow.bold(
+          'WebSVF-codemap-extension'
+        )}`,
+        enabled: () => !options.runInstall && !options.runUnInstall,
+        //skip: () => depInstall.svf,
+        task: () =>
+          execao(
+            'cp',
+            [
+              `-t`,
+              `${options.generateJSONDir}`,
+              'CodeMap.sh',
+              'Bc2Dot.sh',
+              'Dot2Json.py',
+            ],
+            {
+              cwd: scriptsPath,
+            },
+            () => {}
+          ),
+      },
+      {
+        title: `Generating Graphs for ${chalk.yellow.bold(
+          'WebSVF-codemap-extension'
+        )}`,
+        enabled: () => !options.runInstall && !options.runUnInstall,
+        //skip: () => depInstall.svf,
+        task: () =>
+          execao(
+            'bash',
+            [`CodeMap.sh`, select],
+            {
+              cwd: options.generateJSONDir,
+            },
+            () => {}
+          ),
+        //console.log(scanbc(`${options.generateJSONDir}`)),
+        //execao('bash', [`${srcPath}CodeMap.sh`, `${options.generateJSONDir}`], null, ()=>{})
+      },
+      {
+        title: `Removing files for ${chalk.yellow.bold(
+          'WebSVF-codemap-extension'
+        )}`,
+        enabled: () => !options.runInstall && !options.runUnInstall,
+        //skip: () => depInstall.svf,
+        task: () =>
+          execao(
+            'rm',
+            [`-rf`, 'CodeMap.sh', 'Bc2Dot.sh', 'Dot2Json.py'],
+            {
+              cwd: options.generateJSONDir,
+            },
+            () => {}
+          ),
+      },
+    ]);
+
+    try {
+      await tasks1.run();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  //console.log(depInstall);
+  //console.log(dirPresence);
+
+  return true;
 }

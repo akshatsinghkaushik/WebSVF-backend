@@ -6,20 +6,27 @@ This is a simple NodeJS CLI tool to easily install ***[WebSVF](https://github.co
 
 ## System Requirements - Pre-Requesites
 
-### - Ubuntu >=18.04
-Currently due to limitions of the WebSVF's dependency, SVF. WebSVF-backend can only be used with Ubuntu 18.04 or newer.
+### - Ubuntu >=20.04
+Currently due to limitions of the WebSVF's dependency, SVF. WebSVF-backend can only be used with Ubuntu 20.04 or newer.
 
 ### - NPM >=v10.0
 To run the WebSVF-backend scripts, npm version greater than 10.0 is required.
 
+## Installation
+
+```
+sudo npm install -g @websvf/create-analysis
+```
 
 ## Usage
 
 ### 1. Install WebSVF Extensions and Dependencies (SVF, LLVM, Clang...)
 
 ```
-npx create-analysis -i
+sudo create-analysis -i
 ```
+
+**NOTE: This will not work without Elevated/Administrator Privelages i.e. `create-analysis -i`**
 
 #### Options
 
@@ -27,13 +34,19 @@ npx create-analysis -i
 
 To install WebSVF and all its dependencies
 
+##### **`-a user`** or **`--account user`** (Optional): 
+
+Where the `--account` flag indicates that a String is being provided which is the `user` for which WebSVF should be installed. If the user is not specified with the `--account` flag then the user is prompted with a list of users to select from.
+
 ### 2. Generate Analysis for LLVM Bitcode (.bc) file
 
 Generate the bitcode file for your program or project then run the following command from the same directory as the .bc file or specify the directory of the .bc file.
 
 ```
-npx create-analysis
+create-analysis
 ```
+
+**NOTE: This will not work with Elevated/Administrator Privelages i.e. `sudo create-analysis`**
 
 #### Options
 
@@ -46,8 +59,10 @@ Where `-d` or `--dir` flags indicate that the user wants to provide a path for t
 
 
 
-### 3. Uninstall WebSVF Extensions and Dependencies
+### 3. Uninstall WebSVF Extensions and Dependencies (SVF, LLVM, Clang...)
 
 ```
-npx create-analysis -u
+sudo create-analysis -u
 ```
+
+**NOTE: This will not work without Elevated/Administrator Privelages i.e. `create-analysis -i`**
