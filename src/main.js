@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Listr from 'listr';
 import path from 'path';
-import os from 'os';
+import getos from 'getos';
 import execao from 'execa-output';
 import { promisify } from 'util';
 import fs from 'fs';
@@ -27,6 +27,7 @@ import {prepCodemap} from './run/prep/codemap';
 import {generateJSON} from './run/prep/frontend';
 
 const access = promisify(fs.access);
+const getOS = promisify(getos);
 
 //Function that checks for the presence of installation directories of required WebSVF components and dependencies 
 async function checkDirPresence(dirPresence, homePath){
@@ -447,23 +448,45 @@ export async function runEnvSetup(){
             title: `Installing Python to Install WLLVM`,
             enabled: () => dirPresence.llvmUnpack,
             task: () => {
-              if((Number(os.release)===18.04)){
-                execao(
-                'sudo',
-                ['apt-get','install', `-y`, 'python-pip']);
-              }else if ((Number(os.release)===20.04)){
-                execao(
-                  'sudo',
-                  ['apt-get','install', `-y`, 'python3-pip']);
-              }
+              getOS()
+                .then((os) => {
+                  if((Number(os.release)===18.04)){
+                    execao(
+                    'sudo',
+                    ['apt-get','install', `-y`, 'python-pip']);
+                  }else if ((Number(os.release)===20.04)){
+                    execao(
+                      'sudo',
+                      ['apt-get','install', `-y`, 'python3-pip']);
+                  }
+                })
+                .catch((error) => {
+                  throw Error(error);
+                });
             }
           },
           {
             title: `Installing WLLVM`,
             enabled: () => dirPresence.llvmUnpack,
-            task: () => execao(
-              'pip',
-              ['install', 'wllvm'])
+            task: () => {
+              getOS()
+              .then((os) => {
+                if((Number(os.release)===18.04)){
+                  execao(
+                    'pip',
+                    ['install', 'wllvm']);
+                }else if ((Number(os.release)===20.04)){
+                  console.log("Reached");
+                  execao(
+                    'pip3',
+                    ['install', 'wllvm']);
+                }
+              })
+              .catch((error) => {
+                throw Error(error);
+              });
+              
+            }
           },
           {
             title: `Refresh PATH with updated ${chalk.inverse('LLVM_DIR')} and ${chalk.inverse('LLVM_COMPILER')} variables`,
