@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Listr from 'listr';
 import path from 'path';
-import getos from 'getos';
+import os from 'os';
 import execao from 'execa-output';
 import { promisify } from 'util';
 import fs from 'fs';
@@ -446,7 +446,7 @@ export async function runEnvSetup(){
           {
             title: `Installing Python to Install WLLVM`,
             enabled: () => dirPresence.llvmUnpack,
-            task: () => getos((os)=>{
+            task: () => {
               if((Number(os.release)===18.04)){
                 execao(
                 'sudo',
@@ -456,7 +456,7 @@ export async function runEnvSetup(){
                   'sudo',
                   ['apt-get','install', `-y`, 'python3-pip']);
               }
-            })
+            }
           },
           {
             title: `Installing WLLVM`,
