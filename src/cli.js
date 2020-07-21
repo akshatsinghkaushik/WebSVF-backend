@@ -1,6 +1,6 @@
 import arg from 'arg';
 import inquirer from 'inquirer';
-import { createAnalysis, runInstall, runUninstall, runEnvSetup, runEnvReset } from './main';
+import { createAnalysis, runInstall, runUninstall, runEnvSetup, runEnvReset, runEgSetup } from './main';
 import chalk from 'chalk';
 import { promisify } from 'util';
 import fs from 'fs';
@@ -139,19 +139,25 @@ export async function cli(args) {
           await runInstall();
         }
         else{
-          console.log(`${chalk.red('ERROR: ')}Elevated priviledges required to perform the operation`);
+          console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
           throw Error('Operation Failed');
         }
       }
-      else if(options.runUnInstall){
-        await runUninstall();
+      else if(options.runEgSetup){
+        if(!(await isElevated())){
+          await runEgSetup();
+        }
+        else{
+          console.log(`${chalk.red('ERROR: ')}Operation cannot proceed with Elevated Priviledges (sudo)`);
+          throw Error('Operation Failed');
+        }
       }
       else if(options.runEnvSetup){
         if(await isElevated()){
           await runEnvSetup();
         }
         else{
-          console.log(`${chalk.red('ERROR: ')}Elevated priviledges required to perform the operation`);
+          console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
           throw Error('Operation Failed');
         }
       }
@@ -160,9 +166,12 @@ export async function cli(args) {
           await runEnvReset();
         }
         else{
-          console.log(`${chalk.red('ERROR: ')}Elevated priviledges required to perform the operation`);
+          console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
           throw Error('Operation Failed');
         }
+      }
+      else if(options.runUnInstall){
+        await runUninstall();
       }
       else{
         await createAnalysis(options);

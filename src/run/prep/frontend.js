@@ -177,7 +177,7 @@ function analyzePLError(partialLeak, allFilesList) {
     var crossOrigin = [];
 
     freePathArray.forEach(element => {
-        var freePathName = getContent(element, "fl: ", ")");
+        var freePathName = getContent(element, "fl: ", " })");
         if (freePathName.endWith("}")) {
             freePathName = freePathName.substring(0, freePathName.length - 1);
         }
@@ -220,7 +220,7 @@ function analyzePLError(partialLeak, allFilesList) {
 
 function analyzeNFError(neverFree) {
     var neverFreeLine = getContent(neverFree, "ln: ", " fl");
-    var neverFreePath = getContent(neverFree, "fl: ", ")");
+    var neverFreePath = getContent(neverFree, "fl: ", " })");
     var error = {
         "ln": Number(neverFreeLine),
         "Type": "Semantic",

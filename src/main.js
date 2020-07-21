@@ -311,13 +311,27 @@ export async function runEnvSetup(){
     {
       title: `Setting up Environment `,
       enabled: () => true,
-      task: () => {
-
-        const tasks = new Listr ([
+      task: () => new Listr ([
           {
             title: 'Checking Dependency Installations',
             enabled: () => true,
             task: () => checkDependencies(depInstall)
+          },
+          {
+            title: 'Installing Dependencies',
+            enabled: () => true,
+            skip: () => {
+              if (
+                depInstall.vscode &&
+                depInstall.node &&
+                depInstall.nodeVers &&
+                depInstall.unzip &&
+                depInstall.wget
+              ) {
+                return 'Dependencies already installed';
+              }
+            },
+            task: () => depInstallDesktop(depInstall)
           },
           {
             title: `Create llvm-clang directory`,
@@ -453,9 +467,6 @@ export async function runEnvSetup(){
               },()=>{console.log(`${chalk.green('SUCCESS: ')} Please RESTART your system for changes to take effect`)}),
           },
         ],{ concurrent: false })
-
-        return tasks;
-      },
     },
   ]);
 
@@ -464,6 +475,163 @@ export async function runEnvSetup(){
   //Run the list of Installation tasks defined above
   try {
     await envSetupTasks.run();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function runEgSetup(){
+
+  let homePath = getHomePath();
+
+  let currentFileUrl = import.meta.url;
+
+  let rootPath =
+    '/' +
+    path.join(
+      decodeURI(
+        new URL(currentFileUrl).pathname.substring(
+          new URL(currentFileUrl).pathname.indexOf('/') + 1
+        )
+      ),
+      '../../'
+    );
+
+  let binPath = `${rootPath}bin/`;
+  let scriptsPath = `${rootPath}scripts/`;
+
+  let dirPresence = {
+    llvmDir: true,
+    llvm10Dir: true,
+    llvmDL: false,
+    llvmUnpack: true,
+    llvmInstall: true,
+    demoProgZip: true,
+    demoProgDir: true,
+  }
+
+  //A JavaScript object containing boolean values representing whether a particular dependency is installed or not
+  let depInstall = {
+    vscode: false,
+    node: false,
+    nodeVers: false,
+    unzip: false,
+    wget: false
+  };
+
+  await access(`${process.cwd()}/pkg-config-0.26.tar.gz`, fs.constants.R_OK).catch(()=>{
+    dirPresence.demoProgZip = false;
+  });
+
+  await access(`${process.cwd()}/pkg-config-0.26/`, fs.constants.R_OK).catch(()=>{
+    dirPresence.demoProgDir = false;
+  });
+
+  await access(`${homePath}/llvm-clang/`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvmDir = false;
+  });
+
+  await access(`${homePath}/llvm-clang/10`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvm10Dir = false;
+  });
+
+  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvmUnpack = false;
+  });
+
+  await access(`${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/llvm-c-test`, fs.constants.R_OK).catch(()=>{
+    dirPresence.llvmInstall = false;
+  });
+
+  const egSetupTasks = new Listr([
+    {
+      title: `Setting up WebSVF Example (Demo) `,
+      enabled: () => true,
+      task: () => new Listr ([
+          {
+            title: 'Checking Dependency Installations',
+            enabled: () => true,
+            task: () => checkDependencies(depInstall)
+          },
+          {
+            title: 'Checking Environment',
+            enabled: () => true,
+            task: () => {
+              if(!dirPresence.llvmInstall){
+                console.error(chalk.red(`Please Run the command ${chalk.white.inverse('sudo create-analysis --setup-env')} followed by a system restart then run the operation again`));
+                throw Error('Operation Failed')
+              }
+            }
+          },
+          {
+            title: 'Installing Dependencies',
+            enabled: () => true,
+            task: () => execao(
+              'sudo',
+              ['apt', 'install', '-y', 'libglib2.0-dev', 'libncurses5', 'libtool'])
+          },
+          {
+            title: 'Downloading Demo Program',
+            enabled: () => !dirPresence.demoProgDir,
+            task: () => execao(
+              'wget',
+              ['-c', 'https://pkgconfig.freedesktop.org/releases/pkg-config-0.26.tar.gz'],{
+                cwd: `${process.cwd()}`,
+              }, ()=>{
+                dirPresence.demoProgZip = true;
+              })
+          },
+          {
+            title: 'Extracting Demo Program',
+            enabled: () => dirPresence.demoProgZip && !dirPresence.demoProgDir,
+            task: () => execao(
+              'tar',
+              ['xf', 'pkg-config-0.26.tar.gz'],{
+                cwd: `${process.cwd()}`,
+              }, ()=>{
+                execao(
+                  'rm',
+                  ['-rf', 'pkg-config-0.26.tar.gz'],{
+                    cwd: `${process.cwd()}`,
+                  });
+
+                  dirPresence.demoProgZip = false;
+                  dirPresence.demoProgDir = true;
+              })
+          },
+          {
+            title: 'Build Demo Program',
+            enabled: () => true,
+            task: () => execao(
+              'sh',
+              ['setupEg.sh', `${process.cwd()}/pkg-config-0.26/`],{
+                cwd: `${scriptsPath}`,
+              },(result)=>{})
+          },
+          {
+            title: 'Generate LLVM Bitcode (.bc) for the Demo Program',
+            enabled: () => true,
+            task: () => execao(
+              'extract-bc',
+              ['pkg-config', '-o', 'pkg-config.bc'],{
+                cwd: `${process.cwd()}/pkg-config-0.26/`,
+              })
+          },
+          {
+            title: `Generating files for ${chalk.yellow.bold('WebSVF-frontend')}`,
+            enabled: () => true,
+            task: () => generateJSON(`${process.cwd()}/pkg-config-0.26/`,`${binPath}/svf-ex --leak`)
+          },
+          
+        ],{ concurrent: false })
+    },
+  ]);
+
+
+
+  //Run the list of Installation tasks defined above
+  try {
+    await egSetupTasks.run();
   } catch (e) {
     console.error(e);
   }
@@ -534,7 +702,7 @@ export async function createAnalysis(options) {
     },
     {
       title: `Generating files for ${chalk.yellow.bold('WebSVF-frontend')}`,
-      enabled: () => !options.runInstall && !options.runUnInstall,
+      enabled: () => true,
       task: () => generateJSON(`${options.generateJSONDir}`,`${binPath}/svf-ex --leak`)
     },
     {
