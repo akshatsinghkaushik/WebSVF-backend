@@ -85,6 +85,7 @@ export async function installSVFEssentialTools() {
     'libgraphviz-dev',
     'graphviz',
     'python3-pip',
+    'libtinfo6'
   ]); //'libtinfo6',
   if (result.failed) {
     return Promise.reject(
