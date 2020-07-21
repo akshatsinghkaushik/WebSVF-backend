@@ -447,7 +447,7 @@ export async function runEnvSetup(){
             enabled: () => dirPresence.llvmUnpack,
             task: () => execao(
               'sudo',
-              ['apt-get','install', `-y`, 'python3-pip', 'python-pip'])
+              ['apt-get','install', `-y`, 'python3-pip'])
           },
           {
             title: `Installing WLLVM`,
