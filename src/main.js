@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import Listr from 'listr';
 import path from 'path';
-import getos from 'getos';
 import execao from 'execa-output';
 import { promisify } from 'util';
 import fs from 'fs';
@@ -27,7 +26,6 @@ import {prepCodemap} from './run/prep/codemap';
 import {generateJSON} from './run/prep/frontend';
 
 const access = promisify(fs.access);
-const getOS = promisify(getos);
 
 //Function that checks for the presence of installation directories of required WebSVF components and dependencies 
 async function checkDirPresence(dirPresence, homePath){
@@ -256,7 +254,7 @@ export async function runEnvReset(){
   }
 }
 
-export async function runEnvSetup(){
+export async function runEnvSetup(releaseVers){
 
   let homePath = getHomePath();
 
@@ -448,27 +446,21 @@ export async function runEnvSetup(){
             title: `Installing Dependencies (Python and WLLVM)`,
             enabled: () => dirPresence.llvmUnpack,
             task: () => {
-              getOS()
-                .then((os) => {
-                  if(os.release.includes('18.04')){
-                    execao(
-                    'sudo',
-                    ['apt-get','install', `-y`, 'python-pip']);
-                  execao(
-                    'pip',
-                    ['install', 'wllvm']);
-                  }else if (os.release.includes('20.04')){
-                    execao(
-                      'sudo',
-                      ['apt-get','install', `-y`, 'python3-pip']);
-                    execao(
-                      'pip3',
-                      ['install', 'wllvm']);
-                  }
-                })
-                .catch((error) => {
-                  throw Error(error);
-                });
+              if(releaseVers.includes('18.04')){
+                execao(
+                'sudo',
+                ['apt-get','install', `-y`, 'python-pip']);
+              execao(
+                'pip',
+                ['install', 'wllvm']);
+              }else if (releaseVers.includes('20.04')){
+                execao(
+                  'sudo',
+                  ['apt-get','install', `-y`, 'python3-pip']);
+                execao(
+                  'pip3',
+                  ['install', 'wllvm']);
+              }
             }
           },
           {

@@ -154,7 +154,7 @@ export async function cli(args) {
       }
       else if(options.runEnvSetup){
         if(await isElevated()){
-          await runEnvSetup();
+          await runEnvSetup(options.osRelease);
           console.log(`${chalk.green('SUCCESS: ')} Please RESTART your system for changes to take effect`)
         }
         else{
