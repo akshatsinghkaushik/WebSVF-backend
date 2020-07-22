@@ -447,19 +447,21 @@ export async function runEnvSetup(releaseVers){
             enabled: () => dirPresence.llvmUnpack,
             task: () => {
               if(releaseVers.includes('18.04')){
-                execao(
+                return execao(
                 'sudo',
-                ['apt-get','install', `-y`, 'python-pip']);
-              execao(
-                'pip',
-                ['install', 'wllvm']);
+                ['apt-get','install', `-y`, 'python-pip'], null, ()=>{
+                  execao(
+                    'pip',
+                    ['install', 'wllvm']);
+                });
               }else if (releaseVers.includes('20.04')){
-                execao(
+                return execao(
                   'sudo',
-                  ['apt-get','install', `-y`, 'python3-pip']);
-                execao(
-                  'pip3',
-                  ['install', 'wllvm']);
+                  ['apt-get','install', `-y`, 'python3-pip'], null, ()=>{
+                    execao(
+                      'pip3',
+                      ['install', 'wllvm']);
+                  });
               }
             }
           },
