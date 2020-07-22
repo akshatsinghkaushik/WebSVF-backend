@@ -155,6 +155,7 @@ export async function cli(args) {
       else if(options.runEnvSetup){
         if(await isElevated()){
           await runEnvSetup();
+          console.log(`${chalk.green('SUCCESS: ')} Please RESTART your system for changes to take effect`)
         }
         else{
           console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);

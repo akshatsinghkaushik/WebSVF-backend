@@ -445,47 +445,30 @@ export async function runEnvSetup(){
               ],{concurrent: false})
           },
           {
-            title: `Installing Python to Install WLLVM`,
+            title: `Installing Dependencies (Python and WLLVM)`,
             enabled: () => dirPresence.llvmUnpack,
             task: () => {
               getOS()
                 .then((os) => {
-                  if((Number(os.release)===18.04)){
+                  if(os.release.includes('18.04')){
                     execao(
                     'sudo',
                     ['apt-get','install', `-y`, 'python-pip']);
-                  }else if ((Number(os.release)===20.04)){
+                  execao(
+                    'pip',
+                    ['install', 'wllvm']);
+                  }else if (os.release.includes('20.04')){
                     execao(
                       'sudo',
                       ['apt-get','install', `-y`, 'python3-pip']);
+                    execao(
+                      'pip3',
+                      ['install', 'wllvm']);
                   }
                 })
                 .catch((error) => {
                   throw Error(error);
                 });
-            }
-          },
-          {
-            title: `Installing WLLVM`,
-            enabled: () => dirPresence.llvmUnpack,
-            task: () => {
-              getOS()
-              .then((os) => {
-                if((Number(os.release)===18.04)){
-                  execao(
-                    'pip',
-                    ['install', 'wllvm']);
-                }else if ((Number(os.release)===20.04)){
-                  console.log("Reached");
-                  execao(
-                    'pip3',
-                    ['install', 'wllvm']);
-                }
-              })
-              .catch((error) => {
-                throw Error(error);
-              });
-              
             }
           },
           {
@@ -496,7 +479,7 @@ export async function runEnvSetup(){
               ['updateLLVMPath.sh', `${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`],
               {
                 cwd: `${scriptsPath}/`,
-              },()=>{console.log(`${chalk.green('SUCCESS: ')} Please RESTART your system for changes to take effect`)}),
+              }),
           },
         ],{ concurrent: false })
     },
