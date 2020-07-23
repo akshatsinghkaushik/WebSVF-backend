@@ -726,22 +726,16 @@ export async function createAnalysis(options) {
       task: () => checkDependencies(depInstall)
     },
     {
-      title: 'Installing Dependencies',
-      enabled: () => true,
-      skip: () => {
-        if (
-          depInstall.node &&
-          depInstall.nodeVers
-        ) {
-          return 'Dependencies already installed';
-        }
-      },
-      task: () => {}
-    },
-    {
       title: `Generating files for ${chalk.yellow.bold('WebSVF-frontend')}`,
       enabled: () => true,
-      task: () => generateJSON(`${options.generateJSONDir}`,`${binPath}/svf-ex --leak`)
+      task: () => {
+        if(options.backendDir){
+          generateJSON(`${options.generateJSONDir}`,`${options.backendDir} --leak`);
+        }
+        else{
+          generateJSON(`${options.generateJSONDir}`,`${binPath}/svf-ex --leak`);
+        }
+      }
     },
     {
       title: `Generating files ${chalk.yellow.bold(

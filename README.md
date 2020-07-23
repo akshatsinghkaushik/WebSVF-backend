@@ -97,7 +97,28 @@ Where `-d` or `--dir` flags indicate that the user wants to provide a path for t
 
 <hr style="width: 70%"/>
 
-### **3. Uninstall WebSVF Extensions and Dependencies**
+### **3. Generate Analysis using Custom Backend**
+
+Generate the bitcode file for your program or project then run the following command from the same directory as the .bc file or specify the directory of the .bc file.
+
+```
+create-analysis --custom-backend path-to-backend-executable
+```
+
+#### Options
+
+##### **`--custom-backend path-to-backend-executable`**:
+
+If you have developed a custom backend for detecting memory leaks using the [SVF library](https://github.com/SVF-tools/SVF-npm) and the [SVF Example](https://github.com/SVF-tools/SVF-example).
+
+You can specify the path to that executable using the --custom-backend option so that your new backend is used for generating the Bug Report instead of the default SVF backend bundled with WebSVF.
+
+##### **`-d bc-file-directory`** or **`--dir bc-file-directory`** (Optional):
+
+Where `-d` or `--dir` flags indicate that the user wants to provide a path for the directory/folder containing the LLVM Bitcode (.bc) files. The `-d` flag is used cannot be left empty, it must be provided with a directory or the command will fail. If no `-d` flag is specified then the path for the directory containg the .bc files is assumed to be the current working directory from the terminal.
+
+
+### **4. Uninstall WebSVF Extensions and Dependencies**
 
 ```
 sudo create-analysis -u

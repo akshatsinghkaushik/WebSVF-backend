@@ -22,6 +22,7 @@ function parseArgumentsIntoOptions(rawArgs) {
       '--setup-env': Boolean,
       '--reset-env': Boolean,
       '--setup-eg': Boolean,
+      '--custom-backend': String,
       '-i': '--install',
       '-u': '--uninstall',
       '-d': '--dir',
@@ -36,12 +37,34 @@ function parseArgumentsIntoOptions(rawArgs) {
     arguements: args._,
     generateJSONDir: args['--dir'],// || process.cwd(),
     output: args['--output'] || '',
+    customBackendDir: args['--custom-backend'],
     runInstall: args['--install'] || false,
     runUnInstall: args['--uninstall'] || false,
     runEnvSetup: args['--setup-env'] || false,
     runEnvReset: args['--reset-env'] || false,
     runEgSetup: args['--setup-eg'] || false,
   };
+}
+
+async function checkBackendDir(options){
+
+  const dirPresence = {
+    backendDir: true
+  }
+
+  await access(`${options.customBackendDir}`, fs.constants.R_OK).catch(()=>{
+    dirPresence.backendDir = false;
+  });
+
+  if(dirPresence.backendDir){
+    return {
+      ...options,
+      backendDir: options.customBackendDir
+    }
+  }
+  
+  console.log(`${chalk.red('ERROR: ')} The specified directory '${options.customBackendDir}' does not exist or is not accessible`);
+  process.exit(1);
 }
 
 async function promptUserOptions(options){
@@ -116,7 +139,7 @@ async function promptIfWrongDir(options) {
     if(answers.wrongDir==='Quit Operation: Directory does not exist or is not accesible'){
       //Display Error Message
       console.error(
-        `%s Sorry the directory ${options.generateJSONDir} does not exist or is not accessible`,
+        `%s Sorry the path ${options.generateJSONDir} does not exist or is not accessible`,
         chalk.red.bold('ERROR')
       );
       //Terminate program execution
@@ -211,6 +234,9 @@ export async function cli(args) {
         await runUninstall(options);
       }
       else{
+        if(options.customBackendDir){
+          options = await checkBackendDir(options);
+        }
         await createAnalysis(options);
       }      
     }
