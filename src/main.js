@@ -508,7 +508,7 @@ export async function runEnvSetup(options){
   }
 }
 
-export async function runEgSetup(){
+export async function runEgSetup(options){
 
   let homePath = getHomePath();
 
@@ -648,7 +648,7 @@ export async function runEgSetup(){
             task: () => generateJSON(`${process.cwd()}/pkg-config-0.26/`,`${binPath}/svf-ex --leak`)
           },
           {
-            title: `Launch VSCode')}`,
+            title: `Launch VSCode`,
             enabled: () => true,
             task: () => execao(
               'code',
@@ -674,7 +674,7 @@ export async function runEgSetup(){
 export async function createAnalysis(options) {
 
   //Variable storing the path to the current user's Home Directory (uses the npm package home-path for cross-platform support)
-  const homePath = getHomePath();
+  let homePath = getHomePath();
 
   if(options.account){
     homePath = `/home/${options.account}/`;
