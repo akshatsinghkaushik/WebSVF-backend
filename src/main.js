@@ -208,8 +208,12 @@ export async function runUninstall(options) {
   }
 }
 
-export async function runEnvReset() {
+export async function runEnvReset(options) {
   let homePath = getHomePath();
+
+  if (options.account) {
+    homePath = `/home/${options.account}/`;
+  }
 
   let currentFileUrl = import.meta.url;
 
@@ -744,7 +748,7 @@ export async function runEgSetup(options) {
               task: () =>
                 generateJSON(
                   `${process.cwd()}/pkg-config-0.26/`,
-                  `${binPath}/svf-ex --leak`
+                  `${homePath}svf/svf-ex --leak`
                 ),
             },
             {
