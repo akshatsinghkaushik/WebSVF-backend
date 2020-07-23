@@ -71,7 +71,7 @@ export async function runInstall(options) {
   let homePath = getHomePath();
 
   if (options.account) {
-    homePath = `/home/${options.account}/`;
+    homePath = `/home/${options.account}`;
   }
 
   let currentFileUrl = import.meta.url;
@@ -147,8 +147,14 @@ export async function runInstall(options) {
             title: `Copying SVF-Lite executable`,
             enabled: () => true,
             task: () =>
-              execao('cp', [`${binPath}svf-ex`, `${homePath}svf/`], () => {
+              execao('cp', [`${binPath}svf-ex`, `${homePath}/svf/`], () => {
                 dirPresence.svfLite = true;
+
+                execao('chmod', [
+                  '-R',
+                  'u=rwx,g=rwx,o=rwx',
+                  `${homePath}/svf/`,
+                ]);
               }),
           },
         ]),
@@ -829,7 +835,7 @@ export async function createAnalysis(options) {
         } else {
           generateJSON(
             `${options.generateJSONDir}`,
-            `${homePath}/svf/svf-ex --leak`
+            `${homePath}svf/svf-ex --leak`
           );
         }
       },
