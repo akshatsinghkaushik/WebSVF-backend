@@ -70,10 +70,14 @@ async function checkDirPresence(dirPresence, homePath){
   return dirPresence;
 }
 
-export async function runInstall(){
+export async function runInstall(options){
 
   //Variable storing the path to the current user's Home Directory (uses the npm package home-path for cross-platform support)
-  const homePath = getHomePath();
+  let homePath = getHomePath();
+
+  if(options.account){
+    homePath = `/home/${options.account}/`;
+  }
 
   //A JavaScript object containing boolean values representing whether a particular depndency is installed or not
   let depInstall = {
@@ -142,10 +146,14 @@ export async function runInstall(){
   }
 }
 
-export async function runUninstall(){
+export async function runUninstall(options){
 
   //Variable storing the path to the current user's Home Directory (uses the npm package home-path for cross-platform support)
-  const homePath = getHomePath();
+  let homePath = getHomePath();
+
+  if(options.account){
+    homePath = `/home/${options.account}/`;
+  }
 
   const unInstallTasks = new Listr([
     {
@@ -254,9 +262,13 @@ export async function runEnvReset(){
   }
 }
 
-export async function runEnvSetup(releaseVers){
+export async function runEnvSetup(options){
 
   let homePath = getHomePath();
+
+  if(options.account){
+    homePath = `/home/${options.account}/`;
+  }
 
   let currentFileUrl = import.meta.url;
 
@@ -446,7 +458,7 @@ export async function runEnvSetup(releaseVers){
             title: `Installing Dependencies (Python and WLLVM)`,
             enabled: () => dirPresence.llvmUnpack,
             task: () => {
-              if(releaseVers.includes('18.04')){
+              if(options.osRelease.includes('18.04')){
                 return execao(
                 'sudo',
                 ['apt-get','install', `-y`, 'python-pip'], null, ()=>{
@@ -454,7 +466,7 @@ export async function runEnvSetup(releaseVers){
                     'pip',
                     ['install', 'wllvm']);
                 });
-              }else if (releaseVers.includes('20.04')){
+              }else if (options.osRelease.includes('20.04')){
                 return execao(
                   'sudo',
                   ['apt-get','install', `-y`, 'python3-pip'], null, ()=>{
@@ -499,6 +511,10 @@ export async function runEnvSetup(releaseVers){
 export async function runEgSetup(){
 
   let homePath = getHomePath();
+
+  if(options.account){
+    homePath = `/home/${options.account}/`;
+  }
 
   let currentFileUrl = import.meta.url;
 
@@ -659,6 +675,10 @@ export async function createAnalysis(options) {
 
   //Variable storing the path to the current user's Home Directory (uses the npm package home-path for cross-platform support)
   const homePath = getHomePath();
+
+  if(options.account){
+    homePath = `/home/${options.account}/`;
+  }
 
   //A JavaScript object containing boolean values representing whether a particular dependency is installed or not
   let depInstall = {

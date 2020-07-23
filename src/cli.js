@@ -5,8 +5,10 @@ import chalk from 'chalk';
 import { promisify } from 'util';
 import fs from 'fs';
 import isElevated from 'is-elevated';
+import execa from 'execa';
 
 import { checkOS } from './checks/os';
+import { mapExclude } from './helper/excludedUserNames';
 
 const access = promisify(fs.access);
 
@@ -40,6 +42,37 @@ function parseArgumentsIntoOptions(rawArgs) {
     runEnvReset: args['--reset-env'] || false,
     runEgSetup: args['--setup-eg'] || false,
   };
+}
+
+async function promptUserOptions(options){
+
+  //An array for storing the questions to prompt the user with using 'inquirer' (npm package)
+  let questions = [];
+
+  const result = await execa('cut', ['-d:', '-f1', '/etc/passwd']);
+
+  const mapT = result.stdout
+    .split('\n')
+    .filter((item) => !mapExclude.has(item));
+
+  const defaultAccount = mapT[0];
+
+  if(mapT.length!==1){
+    questions.push({
+      type: 'list',
+      name: 'account',
+      message: 'Please choose which user account to install WebSVF for:',
+      choices: mapT,
+      default: defaultAccount,
+    });
+  }
+  
+  const answers = await inquirer.prompt(questions);
+  return {
+    ...options,
+    account: answers.account || defaultAccount
+  }
+
 }
 
 //Function to prompt the user with an option if they specify an invalid directory to run analysis in
@@ -118,7 +151,10 @@ export async function cli(args) {
     //Proceed with further operations if OS Check is successful
     if (options.checkOS) {
 
-      //Offer options on options chaining or 
+      //Offer user account options if not Ubuntu 18.04
+      if(!options.osRelease.includes('18.04')){
+        options = await promptUserOptions(options)
+      }
 
       //If the directory was specified check directory existence on system
       if(options.generateJSONDir){
@@ -136,7 +172,7 @@ export async function cli(args) {
       //Run Different Listr (npm package) tasks based on the user's specified cli arguements (as stored in the options object)
       if(options.runInstall){
         if(await isElevated()){
-          await runInstall();
+          await runInstall(options);
         }
         else{
           console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
@@ -145,7 +181,7 @@ export async function cli(args) {
       }
       else if(options.runEgSetup){
         if(!(await isElevated())){
-          await runEgSetup();
+          await runEgSetup(options);
         }
         else{
           console.log(`${chalk.red('ERROR: ')}Operation cannot proceed with Elevated priviledges (sudo)`);
@@ -154,7 +190,7 @@ export async function cli(args) {
       }
       else if(options.runEnvSetup){
         if(await isElevated()){
-          await runEnvSetup(options.osRelease);
+          await runEnvSetup(options);
           console.log(`${chalk.green('SUCCESS: ')} Please RESTART your system for changes to take effect`)
         }
         else{
@@ -164,7 +200,7 @@ export async function cli(args) {
       }
       else if(options.runEnvReset){
         if(await isElevated()){
-          await runEnvReset();
+          await runEnvReset(options);
         }
         else{
           console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
@@ -172,7 +208,7 @@ export async function cli(args) {
         }
       }
       else if(options.runUnInstall){
-        await runUninstall();
+        await runUninstall(options);
       }
       else{
         await createAnalysis(options);
