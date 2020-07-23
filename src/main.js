@@ -140,7 +140,8 @@ export async function runInstall(options) {
           {
             title: `Creating svf directory`,
             enabled: () => true,
-            task: () => execao('mkdir', ['svf'], { cwd: `${homePath}` }),
+            task: () =>
+              execao('mkdir', ['-m', 'a=rwx', 'svf'], { cwd: `${homePath}` }),
           },
           {
             title: `Copying SVF-Lite executable`,
