@@ -466,6 +466,13 @@ export async function runEnvSetup(releaseVers){
             }
           },
           {
+            title: 'Installing Dependencies for Demo Project',
+            enabled: () => true,
+            task: () => execao(
+              'sudo',
+              ['apt', 'install', '-y', 'libglib2.0-dev', 'libncurses5', 'libtool'])
+          },
+          {
             title: `Refresh PATH with updated ${chalk.inverse('LLVM_DIR')} and ${chalk.inverse('LLVM_COMPILER')} variables`,
             enabled: () => dirPresence.llvmUnpack,
             task: () => execao(
@@ -571,13 +578,6 @@ export async function runEgSetup(){
                 throw Error('Operation Failed')
               }
             }
-          },
-          {
-            title: 'Installing Dependencies',
-            enabled: () => true,
-            task: () => execao(
-              'sudo',
-              ['apt', 'install', '-y', 'libglib2.0-dev', 'libncurses5', 'libtool'])
           },
           {
             title: 'Downloading Demo Program',

@@ -170,7 +170,7 @@ function analyzePLError(partialLeak, allFilesList) {
     var array_1 = partialLeak.split("conditional free path:");
     var freePathArray = array_1.pop().split("\n"); 
     freePathArray.shift();
-    var memoryAllocationString = getParenthesesStr(array_1[0]);
+    var memoryAllocationString = array_1[0];
     var memoryAllocationLine = getContent(memoryAllocationString, "ln: ", " fl");
     var memoryAllocationPath = getContent(memoryAllocationString, "fl: ", " })");
     var stackTrace = [];

@@ -144,11 +144,11 @@ export async function cli(args) {
         }
       }
       else if(options.runEgSetup){
-        if(await isElevated()){
+        if(!(await isElevated())){
           await runEgSetup();
         }
         else{
-          console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
+          console.log(`${chalk.red('ERROR: ')}Operation cannot proceed with Elevated priviledges (sudo)`);
           throw Error('Operation Failed');
         }
       }
