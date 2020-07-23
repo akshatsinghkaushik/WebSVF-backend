@@ -579,7 +579,7 @@ export async function runEgSetup(options) {
   let homePath = getHomePath();
 
   if (options.account) {
-    homePath = `/home/${options.account}/`;
+    homePath = `/home/${options.account}`;
   }
 
   let currentFileUrl = import.meta.url;
@@ -748,7 +748,7 @@ export async function runEgSetup(options) {
               task: () =>
                 generateJSON(
                   `${process.cwd()}/pkg-config-0.26/`,
-                  `${homePath}svf/svf-ex --leak`
+                  `${homePath}/svf/svf-ex --leak`
                 ),
             },
             {
@@ -778,7 +778,7 @@ export async function createAnalysis(options) {
   let homePath = getHomePath();
 
   if (options.account) {
-    homePath = `/home/${options.account}/`;
+    homePath = `/home/${options.account}`;
   }
 
   //A JavaScript object containing boolean values representing whether a particular dependency is installed or not
@@ -838,7 +838,7 @@ export async function createAnalysis(options) {
         } else {
           generateJSON(
             `${options.generateJSONDir}`,
-            `${homePath}svf/svf-ex --leak`
+            `${homePath}/svf/svf-ex --leak`
           );
         }
       },
