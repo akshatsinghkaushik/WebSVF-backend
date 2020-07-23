@@ -26,7 +26,8 @@ const logMessage = async (os) => {
 
           throw new Error('Not Compatible');
         } else if (
-          !(os.release.includes('18.04') || os.release.includes('20.04'))
+          os.dist==="Ubuntu" &&
+          !(Number(os.release)>=18.04)
         ) {
           console.error(
             `\n${chalk.red.bold(
@@ -54,7 +55,6 @@ const logMessage = async (os) => {
 };
 
 export async function checkOS(options) {
-  let error = null;
 
   return new Promise((resolve, reject) => {
     try {
@@ -64,7 +64,8 @@ export async function checkOS(options) {
 
           resolve({
             ...options,
-            check: true,
+            checkOS: true,
+            osRelease: os.release
           });
         })
         .catch((error) => {
