@@ -4,9 +4,7 @@
 
 This is a simple NodeJS CLI tool to easily install ***[WebSVF](https://github.com/SVF-tools/WebSVF)*** and run it.
 
-<br/>
 <hr/>
-<br/>
 
 ## **System Requirements - Pre-Requesites**
 
@@ -22,9 +20,7 @@ The LLVM and Clang compiler tools need to be installed and accessible from the t
 - ### WLLVM
 For compiling entire projects into a LLVM Bitcode (.bc) file for analysis.
 
-<br/>
 <hr/>
-<br/>
 
 ## **Installation**
 
@@ -33,14 +29,11 @@ Install the command-line tool globally on your system using npm, by running the 
 ```
 sudo npm i -g @websvf/create-analysis
 ```
-<br/>
 <hr/>
-<br/>
 
 ## **Usage**
 
 <hr style="width: 70%"/>
-<br/>
 
 ### ***(Optional) Setup Additional Project Dependencies (LLVM, Clang, Python, WLLVM)***
 
@@ -58,7 +51,7 @@ This command also installs dependencies for the project demo which requires the 
 - libtool
 
 <hr style="width: 50%"/>
-<br/>
+
 
 ### **1. Install WebSVF components**
 
@@ -73,8 +66,7 @@ sudo create-analysis -i
 To install WebSVF and all its dependencies
 
 
-<br/><hr style="width: 50%"/>
-<br/>
+<hr style="width: 50%"/>
 
 
 ### ***(Optional) Test the installation by creating analysis for a demo project***
@@ -85,9 +77,7 @@ create-analysis --setup-eg
 
 If you run into errors, run the `sudo create-analysis --setup-env` command and restart your system to make sure all the dependencies for the demo are installed.
 
-<br/>
 <hr style="width: 70%"/>
-<br/>
 
 ### **2. Generate Analysis for LLVM Bitcode (.bc) file**
 
@@ -105,18 +95,14 @@ Where `-d` or `--dir` flags indicate that the user wants to provide a path for t
 
 **How to compile a C project or program to LLVM Bitcode (.bc)**: [Detecting memory leaks](https://github.com/SVF-tools/SVF/wiki/Detecting-memory-leaks) (Step 2)
 
-<br/>
 <hr style="width: 70%"/>
-<br/>
 
 ### **3. Uninstall WebSVF Extensions and Dependencies**
 
 ```
 sudo create-analysis -u
 ```
-<br/>
 <hr style="width: 50%"/>
-<br/>
 
 ### ***(Optional) Reset the LLVM and Clang environment***
 
