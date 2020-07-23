@@ -147,9 +147,8 @@ export async function runInstall(options) {
             title: `Copying SVF-Lite executable`,
             enabled: () => true,
             task: () =>
-              execao('cp', [`${binPath}svf-ex`, `${homePath}/svf/`], () => {
+              execao('cp', [`${binPath}svf-ex`, `${homePath}/svf/`], {}, () => {
                 dirPresence.svfLite = true;
-
                 execao('chmod', [
                   '-R',
                   'u=rwx,g=rwx,o=rwx',
