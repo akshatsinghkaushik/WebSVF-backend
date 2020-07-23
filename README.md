@@ -4,30 +4,43 @@
 
 This is a simple NodeJS CLI tool to easily install ***[WebSVF](https://github.com/SVF-tools/WebSVF)*** and run it.
 
-## System Requirements - Pre-Requesites
+<br/>
+<hr/>
+<br/>
 
-### - Ubuntu 18.04
-Currently due to limitions of the WebSVF's dependency, SVF. WebSVF-backend can only be used with Ubuntu 18.04.
+## **System Requirements - Pre-Requesites**
 
-### - NPM >=v10.0
+- ### Ubuntu 18.04
+WebSVF-backend can only be used with Ubuntu 18.04 at the momemt. Due to updated user management in new versions of Ubuntu, the current application does not work properly right now. Support for Ubuntu 20.04 is coming soon.
+
+- ### NPM >=v10.0
 To run the WebSVF-backend scripts, npm version greater than 10.0 is required.
 
-### - LLVM and Clang
+- ### LLVM and Clang
 The LLVM and Clang compiler tools need to be installed and accessible from the terminal.
 
-### - WLLVM
+- ### WLLVM
 For compiling entire projects into a LLVM Bitcode (.bc) file for analysis.
 
-## Installation
+<br/>
+<hr/>
+<br/>
+
+## **Installation**
 
 Install the command-line tool globally on your system using npm, by running the following command:
 
 ```
 sudo npm i -g @websvf/create-analysis
 ```
+<br/>
+<hr/>
+<br/>
 
+## **Usage**
 
-## Usage
+<hr style="width: 70%"/>
+<br/>
 
 ### ***(Optional) Setup Additional Project Dependencies (LLVM, Clang, Python, WLLVM)***
 
@@ -44,8 +57,10 @@ This command also installs dependencies for the project demo which requires the 
 - libncurses5
 - libtool
 
+<hr style="width: 50%"/>
+<br/>
 
-### **1. Install WebSVF componenmts**
+### **1. Install WebSVF components**
 
 ```
 sudo create-analysis -i
@@ -58,6 +73,10 @@ sudo create-analysis -i
 To install WebSVF and all its dependencies
 
 
+<br/><hr style="width: 50%"/>
+<br/>
+
+
 ### ***(Optional) Test the installation by creating analysis for a demo project***
 
 ```
@@ -66,6 +85,9 @@ create-analysis --setup-eg
 
 If you run into errors, run the `sudo create-analysis --setup-env` command and restart your system to make sure all the dependencies for the demo are installed.
 
+<br/>
+<hr style="width: 70%"/>
+<br/>
 
 ### **2. Generate Analysis for LLVM Bitcode (.bc) file**
 
@@ -83,13 +105,18 @@ Where `-d` or `--dir` flags indicate that the user wants to provide a path for t
 
 **How to compile a C project or program to LLVM Bitcode (.bc)**: [Detecting memory leaks](https://github.com/SVF-tools/SVF/wiki/Detecting-memory-leaks) (Step 2)
 
-
+<br/>
+<hr style="width: 70%"/>
+<br/>
 
 ### **3. Uninstall WebSVF Extensions and Dependencies**
 
 ```
 sudo create-analysis -u
 ```
+<br/>
+<hr style="width: 50%"/>
+<br/>
 
 ### ***(Optional) Reset the LLVM and Clang environment***
 
