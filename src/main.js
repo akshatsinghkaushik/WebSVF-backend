@@ -631,6 +631,15 @@ export async function runEgSetup(){
             enabled: () => true,
             task: () => generateJSON(`${process.cwd()}/pkg-config-0.26/`,`${binPath}/svf-ex --leak`)
           },
+          {
+            title: `Launch VSCode')}`,
+            enabled: () => true,
+            task: () => execao(
+              'code',
+              ['.'],{
+                cwd: `${process.cwd()}/pkg-config-0.26/`,
+              })
+          },
           
         ],{ concurrent: false })
     },
