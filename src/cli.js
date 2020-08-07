@@ -214,7 +214,7 @@ export async function cli(args) {
       else if(options.runEnvSetup){
         if(await isElevated()){
           await runEnvSetup(options);
-          console.log(`${chalk.green('SUCCESS: ')} Please RESTART your system for changes to take effect`)
+          console.log(`${chalk.green('SUCCESS: ')} LLVM-10 is installed in the ${chalk.inverse('~/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04')} directory`)
         }
         else{
           console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
