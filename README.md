@@ -11,7 +11,7 @@ This is a simple NodeJS CLI tool to easily install ***[WebSVF](https://github.co
 - ### Ubuntu 18.04
 WebSVF-backend can only be used with Ubuntu 18.04 at the momemt. Due to updated user management in new versions of Ubuntu, the current application does not work properly right now. Support for Ubuntu 20.04 is coming soon.
 
-- ### NPM >=v10.0
+- ### NodeJS >=v10.0
 To run the WebSVF-backend scripts, npm version greater than 10.0 is required.
 
 - ### LLVM and Clang
