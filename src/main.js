@@ -265,7 +265,7 @@ export async function runInstall(options) {
             task: () => execao('sudo', ['apt', 'install', '-y', 'wget']),
           },
           {
-            title: `Installing ${chalk.inverse('wget')}`,
+            title: `Installing ${chalk.inverse('git')}`,
             enabled: () => true,
             skip: () => depInstall.git,
             task: () => execao('sudo', ['apt', 'install', '-y', 'git']),
