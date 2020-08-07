@@ -1,6 +1,14 @@
 import arg from 'arg';
 import inquirer from 'inquirer';
-import { createAnalysis, runInstall, runUninstall, runEnvSetup, runEnvReset, runEgSetup } from './main';
+import {
+  createAnalysis,
+  runInstall,
+  runCloudInstall,
+  runUninstall,
+  runEnvSetup,
+  runEnvReset,
+  runEgSetup,
+} from './main';
 import chalk from 'chalk';
 import { promisify } from 'util';
 import fs from 'fs';
@@ -17,6 +25,7 @@ function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(
     {
       '--install': Boolean,
+      '--cloud-install': Boolean,
       '--uninstall': Boolean,
       '--dir': String,
       '--setup-env': Boolean,
@@ -35,10 +44,11 @@ function parseArgumentsIntoOptions(rawArgs) {
     //skipPrompts: args['--yes'] || false,
     template: args._[0],
     arguements: args._,
-    generateJSONDir: args['--dir'],// || process.cwd(),
+    generateJSONDir: args['--dir'], // || process.cwd(),
     output: args['--output'] || '',
     customBackendDir: args['--custom-backend'],
     runInstall: args['--install'] || false,
+    runCloudInstall: args['--cloud-install'] || false,
     runUnInstall: args['--uninstall'] || false,
     runEnvSetup: args['--setup-env'] || false,
     runEnvReset: args['--reset-env'] || false,
@@ -46,29 +56,31 @@ function parseArgumentsIntoOptions(rawArgs) {
   };
 }
 
-async function checkBackendDir(options){
-
+async function checkBackendDir(options) {
   const dirPresence = {
-    backendDir: true
-  }
+    backendDir: true,
+  };
 
-  await access(`${options.customBackendDir}`, fs.constants.R_OK).catch(()=>{
+  await access(`${options.customBackendDir}`, fs.constants.R_OK).catch(() => {
     dirPresence.backendDir = false;
   });
 
-  if(dirPresence.backendDir){
+  if (dirPresence.backendDir) {
     return {
       ...options,
-      backendDir: options.customBackendDir
-    }
+      backendDir: options.customBackendDir,
+    };
   }
-  
-  console.log(`${chalk.red('ERROR: ')} The specified directory '${options.customBackendDir}' does not exist or is not accessible`);
+
+  console.log(
+    `${chalk.red('ERROR: ')} The specified directory '${
+      options.customBackendDir
+    }' does not exist or is not accessible`
+  );
   process.exit(1);
 }
 
-async function promptUserOptions(options){
-
+async function promptUserOptions(options) {
   //An array for storing the questions to prompt the user with using 'inquirer' (npm package)
   let questions = [];
 
@@ -80,7 +92,7 @@ async function promptUserOptions(options){
 
   const defaultAccount = mapT[0];
 
-  if(mapT.length!==1){
+  if (mapT.length !== 1) {
     questions.push({
       type: 'list',
       name: 'account',
@@ -89,25 +101,23 @@ async function promptUserOptions(options){
       default: defaultAccount,
     });
   }
-  
+
   const answers = await inquirer.prompt(questions);
   return {
     ...options,
-    account: answers.account || defaultAccount
-  }
-
+    account: answers.account || defaultAccount,
+  };
 }
 
 //Function to prompt the user with an option if they specify an invalid directory to run analysis in
 async function promptIfWrongDir(options) {
-
   //An array for storing the questions to prompt the user with using 'inquirer' (npm package)
   let questions = [];
 
   //Check whether the directory specified using the '--dir' or '-d' arguement, exists or not
   let argsDirPresent = true;
 
-  await access(options.generateJSONDir, fs.constants.R_OK).catch(()=>{
+  await access(options.generateJSONDir, fs.constants.R_OK).catch(() => {
     argsDirPresent = false;
   });
 
@@ -135,8 +145,11 @@ async function promptIfWrongDir(options) {
   const answers = await inquirer.prompt(questions);
 
   //Based on the above checks, return the appropriate version of the options object
-  if(answers.wrongDir){
-    if(answers.wrongDir==='Quit Operation: Directory does not exist or is not accesible'){
+  if (answers.wrongDir) {
+    if (
+      answers.wrongDir ===
+      'Quit Operation: Directory does not exist or is not accesible'
+    ) {
       //Display Error Message
       console.error(
         `%s Sorry the path ${options.generateJSONDir} does not exist or is not accessible`,
@@ -144,8 +157,7 @@ async function promptIfWrongDir(options) {
       );
       //Terminate program execution
       process.exit(1);
-    }
-    else{
+    } else {
       //Return the user's selected directory from the inquirer prompt as the directory to run analysis in
       return {
         ...options,
@@ -160,10 +172,8 @@ async function promptIfWrongDir(options) {
 
 //The Highest Level function that is executed when the user runs any cli command using the program
 export async function cli(args) {
-  
   //try block for the high level functions of the program execution
   try {
-
     //Parse user arguements from the terminal into JSON
     let options = parseArgumentsIntoOptions(args);
 
@@ -173,77 +183,98 @@ export async function cli(args) {
 
     //Proceed with further operations if OS Check is successful
     if (options.checkOS) {
-
       //Offer user account options if not Ubuntu 18.04
-      if(!options.osRelease.includes('18.04')){
-        options = await promptUserOptions(options)
+      if (!options.osRelease.includes('18.04')) {
+        options = await promptUserOptions(options);
       }
 
       //If the directory was specified check directory existence on system
-      if(options.generateJSONDir){
+      if (options.generateJSONDir) {
         //Prompts the user with an option if they enter a wrong directory to run analysis in
         options = await promptIfWrongDir(options);
       }
       //Else specify the directory to run analysis in as the directory opened in the terminal from which the program is executed
-      else{
+      else {
         options = {
           ...options,
-          generateJSONDir: process.cwd()
+          generateJSONDir: process.cwd(),
         };
       }
-      
+
       //Run Different Listr (npm package) tasks based on the user's specified cli arguements (as stored in the options object)
-      if(options.runInstall){
-        if(await isElevated()){
+      if (options.runInstall) {
+        if (await isElevated()) {
           await runInstall(options);
-        }
-        else{
-          console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
+        } else {
+          console.log(
+            `${chalk.red(
+              'ERROR: '
+            )}Elevated priviledges (sudo) required to perform the operation`
+          );
           throw Error('Operation Failed');
         }
-      }
-      else if(options.runEgSetup){
-        if(!(await isElevated())){
+      } else if (options.runCloudInstall) {
+        if (await isElevated()) {
+          await runCloudInstall(options);
+        } else {
+          console.log(
+            `${chalk.red(
+              'ERROR: '
+            )}Elevated priviledges (sudo) required to perform the operation`
+          );
+          throw Error('Operation Failed');
+        }
+      } else if (options.runEgSetup) {
+        if (!(await isElevated())) {
           await runEgSetup(options);
-        }
-        else{
-          console.log(`${chalk.red('ERROR: ')}Operation cannot proceed with Elevated priviledges (sudo)`);
+        } else {
+          console.log(
+            `${chalk.red(
+              'ERROR: '
+            )}Operation cannot proceed with Elevated priviledges (sudo)`
+          );
           throw Error('Operation Failed');
         }
-      }
-      else if(options.runEnvSetup){
-        if(await isElevated()){
+      } else if (options.runEnvSetup) {
+        if (await isElevated()) {
           await runEnvSetup(options);
-          console.log(`${chalk.green('SUCCESS: ')} LLVM-10 is installed in the ${chalk.inverse('~/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04')} directory`)
-        }
-        else{
-          console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
+          console.log(
+            `${chalk.green(
+              'SUCCESS: '
+            )} LLVM-10 is installed in the ${chalk.inverse(
+              '~/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04'
+            )} directory`
+          );
+        } else {
+          console.log(
+            `${chalk.red(
+              'ERROR: '
+            )}Elevated priviledges (sudo) required to perform the operation`
+          );
           throw Error('Operation Failed');
         }
-      }
-      else if(options.runEnvReset){
-        if(await isElevated()){
+      } else if (options.runEnvReset) {
+        if (await isElevated()) {
           await runEnvReset(options);
-        }
-        else{
-          console.log(`${chalk.red('ERROR: ')}Elevated priviledges (sudo) required to perform the operation`);
+        } else {
+          console.log(
+            `${chalk.red(
+              'ERROR: '
+            )}Elevated priviledges (sudo) required to perform the operation`
+          );
           throw Error('Operation Failed');
         }
-      }
-      else if(options.runUnInstall){
+      } else if (options.runUnInstall) {
         await runUninstall(options);
-      }
-      else{
-        if(options.customBackendDir){
+      } else {
+        if (options.customBackendDir) {
           options = await checkBackendDir(options);
         }
         await createAnalysis(options);
-      }      
+      }
     }
-
-  }
-  //catch block for the high level functions of the program execution
-  catch (err) {
+  } catch (err) {
+    //catch block for the high level functions of the program execution
     console.error(err);
   }
 }
