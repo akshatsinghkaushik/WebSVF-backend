@@ -1113,7 +1113,7 @@ export async function runEgSetup(options) {
               task: () =>
                 execao(
                   'sh',
-                  ['setupEg.sh', `${process.cwd()}/pkg-config-0.26/`],
+                  ['setupEg.sh', `${process.cwd()}/pkg-config-0.26/`, `LLVM_DIR=${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`, `${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/`],
                   {
                     cwd: `${scriptsPath}`,
                   },
