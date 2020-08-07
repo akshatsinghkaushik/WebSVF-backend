@@ -13,7 +13,7 @@ export function installExtensions(homePath, dirPresence){
             task: () =>
               execao('wget', [
                 '-c',
-                'https://github.com/SVF-tools/WebSVF/releases/download/0.9.0/WebSVF-frontend-extension_0.9.0.vsix',
+                'https://github.com/SVF-tools/WebSVF/releases/download/0.9.0/WebSVF-frontend-extension_working.vsix',
               ]),
           },
           {
@@ -47,8 +47,8 @@ export function installExtensions(homePath, dirPresence){
             task: () =>
               execao('mv', [
                 '-f',
-                'WebSVF-frontend-extension_0.9.0.vsix',
-                `${homePath}/.vscode/extensions/WebSVF-frontend-extension_0.9.0.zip`,
+                'WebSVF-frontend-extension_working.vsix',
+                `${homePath}/.vscode/extensions/WebSVF-frontend-extension_working.zip`,
               ]),
           },
           {
@@ -79,7 +79,7 @@ export function installExtensions(homePath, dirPresence){
             task: () =>
               execao(
                 'mkdir',
-                ['-m', 'a=rwx', 'WebSVF-frontend-extension_0.9.0'],
+                ['-m', 'a=rwx', 'WebSVF-frontend-extension_working'],
                 {
                   cwd: `${homePath}/.vscode/extensions`,
                 }
@@ -108,9 +108,9 @@ export function installExtensions(homePath, dirPresence){
               execao(
                 'unzip',
                 [
-                  'WebSVF-frontend-extension_0.9.0.zip',
+                  'WebSVF-frontend-extension_working.zip',
                   '-d',
-                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension_0.9.0`,
+                  `${homePath}/.vscode/extensions/WebSVF-frontend-extension_working`,
                 ],
                 {
                   cwd: `${homePath}/.vscode/extensions`,
@@ -133,7 +133,7 @@ export function installExtensions(homePath, dirPresence){
             task: () =>
               execao('mv', [
                 '-f',
-                `${homePath}/.vscode/extensions/WebSVF-frontend-extension_0.9.0/extension/`,
+                `${homePath}/.vscode/extensions/WebSVF-frontend-extension_working/extension/`,
                 `${homePath}/.vscode/extensions/WebSVF-frontend-extension/`,
               ]),
           },
@@ -165,7 +165,7 @@ export function installExtensions(homePath, dirPresence){
                 'rm',
                 [
                   '-rf',
-                  'WebSVF-frontend-extension_0.9.0.zip',
+                  'WebSVF-frontend-extension_working.zip',
                   'codemap-extension-0.0.1.zip',
                   'WebSVF-frontend-extension_0.9.0/',
                   'codemap-extension-0.0.1/',

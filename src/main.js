@@ -956,6 +956,8 @@ export async function runEgSetup(options) {
     dirPresence.llvmInstall = false;
   });
 
+  const cwd = process.cwd();
+
   const egSetupTasks = new Listr([
     {
       title: `Setting up WebSVF Example (Demo) `,
@@ -1079,7 +1081,7 @@ export async function runEgSetup(options) {
                     'https://pkgconfig.freedesktop.org/releases/pkg-config-0.26.tar.gz',
                   ],
                   {
-                    cwd: `${process.cwd()}`,
+                    cwd: `${cwd}`,
                   },
                   () => {
                     dirPresence.demoProgZip = true;
@@ -1095,11 +1097,11 @@ export async function runEgSetup(options) {
                   'tar',
                   ['xf', 'pkg-config-0.26.tar.gz'],
                   {
-                    cwd: `${process.cwd()}`,
+                    cwd: `${cwd}`,
                   },
                   () => {
                     execao('rm', ['-rf', 'pkg-config-0.26.tar.gz'], {
-                      cwd: `${process.cwd()}`,
+                      cwd: `${cwd}`,
                     });
 
                     dirPresence.demoProgZip = false;
@@ -1113,7 +1115,7 @@ export async function runEgSetup(options) {
               task: () =>
                 execao(
                   'sh',
-                  ['setupEg.sh', `${process.cwd()}/pkg-config-0.26/`, `LLVM_DIR=${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`, `${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/`],
+                  ['setupEg.sh', `${cwd}/pkg-config-0.26/`, `LLVM_DIR=${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04`, `${homePath}/llvm-clang/10/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04/bin/`],
                   {
                     cwd: `${scriptsPath}`,
                   },
@@ -1121,30 +1123,23 @@ export async function runEgSetup(options) {
                 ),
             },
             {
-              title: 'Generate LLVM Bitcode (.bc) for the Demo Program',
-              enabled: () => true,
-              task: () =>
-                execao('extract-bc', ['pkg-config', '-o', 'pkg-config.bc'], {
-                  cwd: `${process.cwd()}/pkg-config-0.26/`,
-                }),
-            },
-            {
               title: `Generating files for ${chalk.yellow.bold(
                 'WebSVF-frontend'
               )}`,
               enabled: () => true,
-              task: () =>
+              task: () => {
                 generateJSON(
-                  `${process.cwd()}/pkg-config-0.26/`,
+                  `${cwd}/pkg-config-0.26/`,
                   `${homePath}/svf/svf-ex --leak`
-                ),
+                );
+              },
             },
             {
               title: `Launch VSCode`,
               enabled: () => true,
               task: () =>
                 execao('code', ['.'], {
-                  cwd: `${process.cwd()}/pkg-config-0.26/`,
+                  cwd: `${cwd}/pkg-config-0.26/`,
                 }),
             },
           ],
