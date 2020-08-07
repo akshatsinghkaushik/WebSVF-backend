@@ -45,4 +45,10 @@ export const mapExclude = new Map([
     ["gdm", "user"],
     ["systemd-coredump", "user"],
     ["vboxadd", "user"],
+    ["landscape", "user"],
+    ["pollinate", "user"],
+    ["ec2-instance-connect", "user"],
+    ["lxd", "user"],
+    ["new", "user"],
+    ["caddy", "user"],
   ]);
