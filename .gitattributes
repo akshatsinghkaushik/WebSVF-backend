@@ -10,6 +10,7 @@
 *.sh text eol=lf
 *.py text eol=lf
 create-analysis eol=lf
+bin/SVF-linux eol=lf
 
 # Denote all files that are truly binary and should not be modified.
 *.png binary
