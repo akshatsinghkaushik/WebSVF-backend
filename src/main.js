@@ -96,6 +96,7 @@ export async function runInstall(options) {
     nodeVers: false,
     unzip: false,
     wget: false,
+    git: false,
   };
 
   let dirPresence = {
@@ -124,7 +125,8 @@ export async function runInstall(options) {
           depInstall.node &&
           depInstall.nodeVers &&
           depInstall.unzip &&
-          depInstall.wget
+          depInstall.wget &&
+          depInstall.git
         ) {
           return 'Dependencies already installed';
         }
@@ -144,18 +146,28 @@ export async function runInstall(options) {
               execao('mkdir', ['-m', 'a=rwx', 'svf'], { cwd: `${homePath}` }),
           },
           {
-            title: `Copying SVF-Lite executable`,
+            title: `Cloning SVF-example`,
             enabled: () => true,
             task: () =>
-              execao('cp', [`${binPath}svf-ex`, `${homePath}/svf/`], {}, () => {
-                dirPresence.svfLite = true;
-                execao('chmod', [
-                  '-R',
-                  'u=rwx,g=rwx,o=rwx',
-                  `${homePath}/svf/`,
-                ]);
-              }),
+              execao(
+                'git',
+                ['clone', 'https://github.com/SVF-tools/SVF-example.git'],
+                { cwd: `${homePath}/svf` }
+              ),
           },
+          // {
+          //   title: `Copying SVF-Lite executable`,
+          //   enabled: () => true,
+          //   task: () =>
+          //     execao('cp', [`${binPath}svf-ex`, `${homePath}/svf/`], {}, () => {
+          //       dirPresence.svfLite = true;
+          //       execao('chmod', [
+          //         '-R',
+          //         'u=rwx,g=rwx,o=rwx',
+          //         `${homePath}/svf/`,
+          //       ]);
+          //     }),
+          // },
         ]),
     },
     {
