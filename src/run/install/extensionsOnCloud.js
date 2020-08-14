@@ -11,7 +11,7 @@ export function installExtensionsOnCloud(homePath, dirPresence) {
         task: () =>
           execao('wget', [
             '-c',
-            'https://github.com/SVF-tools/WebSVF/releases/download/0.9.0/WebSVF-frontend-extension_working.vsix',
+            'https://github.com/SVF-tools/WebSVF/releases/download/0.9.0/WebSVF-frontend-extension_0.9.0.vsix',
           ]),
       },
       {
@@ -61,8 +61,8 @@ export function installExtensionsOnCloud(homePath, dirPresence) {
         task: () =>
           execao('mv', [
             '-f',
-            'WebSVF-frontend-extension_working.vsix',
-            `${homePath}/.local/share/code-server/extensions/WebSVF-frontend-extension_working.zip`,
+            'WebSVF-frontend-extension_0.9.0.vsix',
+            `${homePath}/.local/share/code-server/extensions/WebSVF-frontend-extension_0.9.0.zip`,
           ]),
       },
       {
@@ -87,13 +87,9 @@ export function installExtensionsOnCloud(homePath, dirPresence) {
         title: `Making directory ${chalk.blue('WebSVF-frontend-extension')}`,
         enabled: () => !dirPresence.coderFrontend,
         task: () =>
-          execao(
-            'mkdir',
-            ['-m', 'a=rwx', 'WebSVF-frontend-extension_working'],
-            {
-              cwd: `${homePath}/.local/share/code-server/extensions/`,
-            }
-          ),
+          execao('mkdir', ['-m', 'a=rwx', 'WebSVF-frontend-extension_0.9.0'], {
+            cwd: `${homePath}/.local/share/code-server/extensions/`,
+          }),
       },
       {
         title: `Extracting ${chalk.blue('WebSVF-codemap-extension')}`,
@@ -118,9 +114,9 @@ export function installExtensionsOnCloud(homePath, dirPresence) {
           execao(
             'unzip',
             [
-              'WebSVF-frontend-extension_working.zip',
+              'WebSVF-frontend-extension_0.9.0.zip',
               '-d',
-              `${homePath}/.local/share/code-server/extensions/WebSVF-frontend-extension_working`,
+              `${homePath}/.local/share/code-server/extensions/WebSVF-frontend-extension_0.9.0`,
             ],
             {
               cwd: `${homePath}/.local/share/code-server/extensions/`,
@@ -143,7 +139,7 @@ export function installExtensionsOnCloud(homePath, dirPresence) {
         task: () =>
           execao('mv', [
             '-f',
-            `${homePath}/.local/share/code-server/extensions/WebSVF-frontend-extension_working/extension/`,
+            `${homePath}/.local/share/code-server/extensions/WebSVF-frontend-extension_0.9.0/extension/`,
             `${homePath}/.local/share/code-server/extensions/WebSVF-frontend-extension/`,
           ]),
       },
@@ -171,9 +167,9 @@ export function installExtensionsOnCloud(homePath, dirPresence) {
             'rm',
             [
               '-rf',
-              'WebSVF-frontend-extension_working.zip',
+              'WebSVF-frontend-extension_0.9.0.zip',
               'codemap-extension-0.0.1.zip',
-              'WebSVF-frontend-extension_working/',
+              'WebSVF-frontend-extension_0.9.0/',
               'codemap-extension-0.0.1/',
             ],
             {
