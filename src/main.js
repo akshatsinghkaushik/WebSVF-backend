@@ -37,19 +37,20 @@ async function checkCloudDirPresence(dirPresence, homePath) {
     dirPresence.coderExtDir = false;
   });
 
-  await access(`${homePath}/.local`, fs.constants.R_OK).catch(() => {
+  await access(`${homePath}/.local/`, fs.constants.R_OK).catch(() => {
     dirPresence.local = false;
   });
 
-  await access(`${homePath}/.local/share`, fs.constants.R_OK).catch(() => {
+  await access(`${homePath}/.local/share/`, fs.constants.R_OK).catch(() => {
     dirPresence.localShare = false;
   });
 
-  await access(`${homePath}/.local/share/code-server`, fs.constants.R_OK).catch(
-    () => {
-      dirPresence.codeServer = false;
-    }
-  );
+  await access(
+    `${homePath}/.local/share/code-server/`,
+    fs.constants.R_OK
+  ).catch(() => {
+    dirPresence.codeServer = false;
+  });
 
   //Check if the Installation directory for the WebSVF-codemap-extension exists (~/.vscode/extensions/codemap-extension)
   await access(
