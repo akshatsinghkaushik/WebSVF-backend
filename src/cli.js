@@ -2,13 +2,23 @@ import arg from 'arg';
 import inquirer from 'inquirer';
 import {
   createAnalysis,
-  runInstall,
   runCloudInstall,
-  runUninstall,
-  runEnvSetup,
-  runEnvReset,
+  
   runEgSetup,
 } from './main';
+
+import { runUninstall } from './run/uninstall'
+
+import {runEnvReset} from './run/uninstallLLVM-Clang'
+
+import {
+  runInstall,
+} from './run/install/svf';
+
+import {
+  runEnvSetup,
+} from './run/install/llvm-clang';
+
 import chalk from 'chalk';
 import { promisify } from 'util';
 import fs from 'fs';
@@ -25,12 +35,15 @@ function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(
     {
       '--install': Boolean,
+      '--install-all': Boolean,
       '--cloud-install': Boolean,
       '--uninstall': Boolean,
+      '--uninstall-all': Boolean,
       '--dir': String,
       '--setup-env': Boolean,
       '--reset-env': Boolean,
       '--setup-eg': Boolean,
+      '--reinstall-svf': Boolean,
       '--custom-backend': String,
       '-i': '--install',
       '-u': '--uninstall',
@@ -48,11 +61,14 @@ function parseArgumentsIntoOptions(rawArgs) {
     output: args['--output'] || '',
     customBackendDir: args['--custom-backend'],
     runInstall: args['--install'] || false,
+    runInstallAll: args['--install-all'] || false,
     runCloudInstall: args['--cloud-install'] || false,
     runUnInstall: args['--uninstall'] || false,
+    runUnInstallAll: args['--uninstall-all'] || false,
     runEnvSetup: args['--setup-env'] || false,
     runEnvReset: args['--reset-env'] || false,
     runEgSetup: args['--setup-eg'] || false,
+    runSVFReset: args['--reinstall-svf'] || false,
   };
 }
 
@@ -204,6 +220,42 @@ export async function cli(args) {
       //Run Different Listr (npm package) tasks based on the user's specified cli arguements (as stored in the options object)
       if (options.runInstall) {
         if (await isElevated()) {
+          await runInstall(options);
+        } else {
+          console.log(
+            `${chalk.red(
+              'ERROR: '
+            )}Elevated priviledges (sudo) required to perform the operation`
+          );
+          throw Error('Operation Failed');
+        }
+      } else if (options.runInstallAll) {
+        if (await isElevated()) {
+          await runEnvSetup(options);
+          await runInstall(options);
+        } else {
+          console.log(
+            `${chalk.red(
+              'ERROR: '
+            )}Elevated priviledges (sudo) required to perform the operation`
+          );
+          throw Error('Operation Failed');
+        }
+      } else if (options.runUnInstallAll) {
+        if (await isElevated()) {
+          await runEnvReset(options);
+          await runUninstall(options);
+        } else {
+          console.log(
+            `${chalk.red(
+              'ERROR: '
+            )}Elevated priviledges (sudo) required to perform the operation`
+          );
+          throw Error('Operation Failed');
+        }
+      } else if (options.runSVFReset) {
+        if (await isElevated()) {
+          await runUninstall(options);
           await runInstall(options);
         } else {
           console.log(
