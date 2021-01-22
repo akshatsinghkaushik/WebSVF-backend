@@ -304,6 +304,12 @@ export async function runInstall(options) {
                 execao('sudo', ['apt', 'install', '-y', 'libtinfo-dev'], {}),
             },
             {
+              title: `Installing graphviz`,
+              enabled: () => true,
+              task: () =>
+                execao('sudo', ['apt', 'install', '-y', 'graphviz'], {}),
+            },
+            {
               title: `make SVF-example binary/executable`,
               enabled: () => true,
               task: () =>

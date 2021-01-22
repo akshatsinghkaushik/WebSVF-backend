@@ -306,7 +306,7 @@ export async function runEnvSetup(options) {
               },
               {
                 title: `Installing Dependencies (Python and WLLVM)`,
-                enabled: () => dirPresence.llvmUnpack,
+                enabled: () => true,
                 task: () => {
                   if (options.osRelease.includes('18.04')) {
                     return execao(
